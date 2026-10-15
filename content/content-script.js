@@ -75,7 +75,7 @@
 
   // Gemini State
   let userGeminiApiKey = "";
-  let userGeminiModel = "gemini-2.0-flash";
+  let userGeminiModel = "gemini-3.8-flash";
   let userGeminiVoice = "Puck";
   let activeGeminiAudio = null;
   let isGeminiAudioMode = false;
@@ -207,14 +207,15 @@
         // Fetch stored settings
         chrome.storage.local.get({
           geminiApiKey: "",
-          geminiModel: "gemini-2.0-flash",
+          geminiModel: "gemini-3.8-flash",
           geminiVoice: "Puck",
           preferredHindiVoice: "hi_IN-pratham-medium",
           preferredEnglishVoice: "en_US-lessac-medium",
           defaultSpeed: 1.0
         }, (settings) => {
           userGeminiApiKey = (settings.geminiApiKey || "").trim();
-          userGeminiModel = settings.geminiModel || "gemini-2.0-flash";
+          const rawModel = settings.geminiModel || "gemini-3.8-flash";
+          userGeminiModel = (rawModel.includes("2.0") || rawModel.includes("2.5")) ? "gemini-3.8-flash" : rawModel;
           userGeminiVoice = settings.geminiVoice || "Puck";
           currentSpeed = settings.defaultSpeed || 1.0;
           speedValue.textContent = `${currentSpeed.toFixed(1)}x`;

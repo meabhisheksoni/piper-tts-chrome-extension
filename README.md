@@ -1,10 +1,10 @@
-# 🔊 Piper Neural TTS + ✨ Google Gemini AI (v1.1.0)
+# 🔊 Piper Neural TTS + ✨ Google Gemini 3.8 AI (v1.1.1)
 ### Chrome Extension (Manifest V3)
 
 A privacy-first, next-generation Chrome extension that gives you **two powerful AI options** whenever you drag and select text on any webpage:
 
-1. **✨ Read in Natural Human AI Speech:** Powered by **Google Gemini 2.0 Flash Audio**, delivering interview-level emotional cadence, natural conversational pauses, and expressive voice personas (Puck, Kore, Fenrir, Aoede, Charon) in Hindi & English.
-2. **🧠 Smart Executive Summarization:** Instantly analyzes long or complex articles, documents, and news, extracting core takeaways in under 30 seconds with a 1-click **"Listen to Summary"** audio player.
+1. **✨ Read in Natural Human AI Speech:** Powered by **Google Gemini 3.8 Flash Audio** (`gemini-3.8-flash-tts`), delivering interview-level emotional cadence, natural conversational pauses, and expressive voice personas (Puck, Kore, Fenrir, Aoede, Charon) in Hindi & English.
+2. **🧠 Smart Executive Summarization:** Instantly analyzes long or complex articles, documents, and news using **Gemini 3.8 Flash** (`gemini-3.8-flash`), extracting core takeaways in under 30 seconds with a 1-click **"Listen to Summary"** audio player.
 3. **🛡️ 100% Offline Piper Fallback:** Seamlessly falls back to local **Rhasspy Piper ONNX** neural models when offline or without an API key.
 
 ---
@@ -17,8 +17,8 @@ A privacy-first, next-generation Chrome extension that gives you **two powerful 
   - **✨ Summarize:** Understands the entire context and displays key insights in a floating frosted card.
   - **🌐 Persona / Voice Badge:** Click directly on the badge to cycle through voices (`Puck`, `Kore`, `Fenrir`, `Aoede`, `Charon` or Piper offline voices) in real-time.
 
-### 2. Google Gemini 2.0 / 3.8 Natural AI Voices (Free Tier Ready)
-- Connects directly to Google AI Studio's **Gemini 2.0 Flash** multimodal audio engine.
+### 2. Google Gemini 3.8 Natural AI Voices (Free Tier Ready)
+- Connects directly to Google AI Studio's **Gemini 3.8 Flash** & **Gemini 3.8 Flash TTS** multimodal engines.
 - **100% Free Tier:** 15 Requests Per Minute, 1,500 Requests Per Day, and 1,000,000 Tokens Per Minute with **zero credit card required**.
 - **Voice Personas:**
   - `Puck` (Male) — Conversational, warm, realistic natural pauses.
@@ -60,7 +60,7 @@ A privacy-first, next-generation Chrome extension that gives you **two powerful 
 
 ## 🚀 How to Install in Google Chrome
 
-1. Download the latest `piper-tts-extension-v1.1.0.zip` from [GitHub Releases](https://github.com/meabhisheksoni/piper-tts-chrome-extension/releases).
+1. Download the latest `piper-tts-extension-v1.1.1.zip` from [GitHub Releases](https://github.com/meabhisheksoni/piper-tts-chrome-extension/releases).
 2. Unzip the file into a folder on your computer.
 3. Open Google Chrome and navigate to:
    ```

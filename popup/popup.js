@@ -38,7 +38,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   } else {
     updateGeminiStatusBadge(false);
   }
-  if (settings.geminiModel) geminiModelSelect.value = settings.geminiModel;
+  const activeModel = (settings.geminiModel && !settings.geminiModel.includes("2.0") && !settings.geminiModel.includes("2.5"))
+    ? settings.geminiModel
+    : "gemini-3.8-flash";
+  geminiModelSelect.value = activeModel;
   if (settings.geminiVoice) geminiVoiceSelect.value = settings.geminiVoice;
 
   // Persist Gemini settings changes
@@ -128,7 +131,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           sampleText,
           currentSettings.geminiApiKey,
           currentSettings.geminiVoice || "Puck",
-          currentSettings.geminiModel || "gemini-2.0-flash"
+          currentSettings.geminiModel || "gemini-3.8-flash-tts"
         );
 
         testVoiceBtn.innerHTML = `<span>🔊</span><span>Playing Gemini Human Audio...</span>`;
