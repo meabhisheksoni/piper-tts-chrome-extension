@@ -16,20 +16,49 @@
           <p class="logo-subtitle">Offline & Private Speech Engine</p>
         </div>
       </div>
-      <span class="badge">v1.1.2</span>
+      <span class="badge">v1.2.0</span>
     </header>
 
     <!-- Engine Mode Selection -->
     <section class="section">
       <label class="section-label">Primary Speech Engine</label>
       <select id="speech-engine-select" class="select-input">
-        <option value="gemini">✨ Google Gemini 3.8 AI (Studio Human Voice • &lt;1s Stream)</option>
-        <option value="local">⚡ Instant Local Piper (0ms Latency • Runs 100% on PC)</option>
+        <option value="gemini">✨ Google Gemini 3.8 AI (Studio Human Voice • &lt;800ms Stream)</option>
+        <option value="local">⚡ Kokoro-82M Neural Engine (100% Offline • Studio Voice)</option>
+      </select>
+    </section>
+
+    <!-- Kokoro-82M Offline Voice Section -->
+    <section class="section kokoro-card" id="kokoro-card" style="border: 1px solid #10b981; border-radius: 8px; padding: 10px; background: rgba(16, 185, 129, 0.06);">
+      <div class="row-between">
+        <label class="section-label" style="color: #34d399;">⚡ Kokoro-82M Offline Studio Engine</label>
+        <span class="badge" id="kokoro-status-badge" style="background:#065f46; color:#a7f3d0;">100% Offline</span>
+      </div>
+      <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 8px 0; line-height: 1.4;">
+        Runs 100% inside your browser via WebGPU/WASM. Zero API key, zero external software, studio-grade 24kHz audio.
+      </p>
+
+      <label class="section-label" style="margin-top: 6px;">English Voice Persona (Studio Quality)</label>
+      <select id="kokoro-voice-select" class="select-input">
+        <option value="af_heart">Heart (Female • Warm Conversational • Global #1)</option>
+        <option value="af_bella">Bella (Female • Expressive &amp; Bright • Grade A-)</option>
+        <option value="af_nicole">Nicole (Female • Audiobook Narrator • Grade B-)</option>
+        <option value="am_adam">Adam (Male • Deep Warm Conversational)</option>
+        <option value="am_michael">Michael (Male • Clear Narrator • Grade C+)</option>
+        <option value="am_puck">Puck (Male • Friendly Casual)</option>
+        <option value="bf_emma">Emma (British Female • Crisp &amp; Polished)</option>
+        <option value="bm_george">George (British Male • BBC News Style)</option>
+      </select>
+
+      <label class="section-label" style="margin-top: 8px;">Hindi Voice Persona (Natural)</label>
+      <select id="kokoro-hindi-voice-select" class="select-input">
+        <option value="hf_alpha">Alpha (Hindi Female • Clear Natural)</option>
+        <option value="hm_omega">Omega (Hindi Male • Deep Natural)</option>
       </select>
     </section>
 
     <!-- Gemini AI Human Voice & Summarizer Configuration -->
-    <section class="section gemini-card">
+    <section class="section gemini-card" id="gemini-card">
       <div class="row-between">
         <label class="section-label" style="color: #38bdf8;">✨ Google Gemini AI (Human Voice)</label>
         <span class="badge" id="gemini-status-badge" style="background:#065f46; color:#a7f3d0;">Free Tier Ready</span>
@@ -126,7 +155,7 @@
 
     <!-- Footer -->
     <footer class="popup-footer">
-      <span>100% Client-Side • Powered by Rhasspy Piper</span>
+      <span>100% Client-Side • Powered by Google Gemini 3.8 AI &amp; Kokoro-82M ONNX</span>
     </footer>
   </div>
 

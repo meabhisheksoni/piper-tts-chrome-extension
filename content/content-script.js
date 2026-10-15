@@ -47,7 +47,21 @@
     { id: "Charon", name: "Charon", gender: "Male", label: "✨ AI • Charon (M)" }
   ];
 
-  // Piper Offline Voice Catalogs
+  // Kokoro-82M Studio Neural Voice Catalogs
+  const KOKORO_VOICES_LIST = [
+    { id: "af_heart", name: "Heart", gender: "Female", lang: "en", label: "⚡ Heart (F • A)" },
+    { id: "af_bella", name: "Bella", gender: "Female", lang: "en", label: "⚡ Bella (F • A-)" },
+    { id: "af_nicole", name: "Nicole", gender: "Female", lang: "en", label: "⚡ Nicole (F • Audio)" },
+    { id: "am_adam", name: "Adam", gender: "Male", lang: "en", label: "⚡ Adam (M • Deep)" },
+    { id: "am_michael", name: "Michael", gender: "Male", lang: "en", label: "⚡ Michael (M • Clear)" },
+    { id: "am_puck", name: "Puck", gender: "Male", lang: "en", label: "⚡ Puck (M • Casual)" },
+    { id: "bf_emma", name: "Emma", gender: "Female", lang: "en", label: "⚡ Emma (UK F)" },
+    { id: "bm_george", name: "George", gender: "Male", lang: "en", label: "⚡ George (UK M)" },
+    { id: "hf_alpha", name: "Alpha", gender: "Female", lang: "hi", label: "⚡ Alpha (HI F)" },
+    { id: "hm_omega", name: "Omega", gender: "Male", lang: "hi", label: "⚡ Omega (HI M)" }
+  ];
+
+  // Legacy Piper Offline Voice Catalogs
   const HINDI_VOICES = [
     { id: "hi_IN-pratham-medium", name: "Pratham", gender: "Male", label: "HI • Pratham (M)" },
     { id: "hi_IN-priyamvada-medium", name: "Priyamvada", gender: "Female", label: "HI • Priyamvada (F)" },
@@ -212,6 +226,8 @@
           geminiModel: "gemini-3.8-flash",
           geminiVoice: "Puck",
           speechEngine: "gemini",
+          kokoroVoice: "af_heart",
+          kokoroHindiVoice: "hf_alpha",
           preferredHindiVoice: "hi_IN-pratham-medium",
           preferredEnglishVoice: "en_US-lessac-medium",
           defaultSpeed: 1.0
@@ -236,18 +252,14 @@
             speakIcon.textContent = "⚡";
             speakText.textContent = "Instant Local";
             if (activeLanguage === "hi") {
-              activeVoiceId = settings.preferredHindiVoice || "hi_IN-pratham-medium";
-              const voiceObj = HINDI_VOICES.find(v => v.id === activeVoiceId) || HINDI_VOICES[0];
-              langBadge.textContent = voiceObj.label;
-              langBadge.className = "piper-lang-badge hindi";
-              langBadge.title = `Instant Local Piper (0ms delay) • Current: ${voiceObj.name} • Click to cycle voice`;
+              activeVoiceId = settings.kokoroHindiVoice || "hf_alpha";
             } else {
-              activeVoiceId = settings.preferredEnglishVoice || "en_US-lessac-medium";
-              const voiceObj = ENGLISH_VOICES.find(v => v.id === activeVoiceId) || ENGLISH_VOICES[0];
-              langBadge.textContent = voiceObj.label;
-              langBadge.className = "piper-lang-badge english";
-              langBadge.title = `Instant Local Piper (0ms delay) • Current: ${voiceObj.name} • Click to cycle voice`;
+              activeVoiceId = settings.kokoroVoice || "af_heart";
             }
+            const voiceObj = KOKORO_VOICES_LIST.find(v => v.id === activeVoiceId) || KOKORO_VOICES_LIST[0];
+            langBadge.textContent = voiceObj.label;
+            langBadge.className = `piper-lang-badge ${activeLanguage === "hi" ? "hindi" : "english"}`;
+            langBadge.title = `Kokoro-82M Neural (100% Offline) • Current: ${voiceObj.name} • Click to cycle voice`;
           }
         });
 
@@ -271,7 +283,7 @@
   // Cycle Persona / Voice on Badge Click
   langBadge.addEventListener("click", (e) => {
     e.stopPropagation();
-    if (userGeminiApiKey) {
+    if (userSpeechEngine === "gemini" && userGeminiApiKey) {
       // Cycle through Gemini Voice Personas
       const currentIdx = GEMINI_VOICE_LIST.findIndex(v => v.id === userGeminiVoice);
       const nextIdx = (currentIdx + 1) % GEMINI_VOICE_LIST.length;
@@ -281,18 +293,20 @@
       langBadge.title = `Google Gemini AI Active • Voice: ${nextVoice.name} (${nextVoice.gender})`;
       chrome.storage.local.set({ geminiVoice: nextVoice.id });
     } else {
-      // Cycle through Piper Offline Voices
-      const list = activeLanguage === "hi" ? HINDI_VOICES : ENGLISH_VOICES;
+      // Cycle through Kokoro-82M Offline Voices
+      const list = activeLanguage === "hi"
+        ? KOKORO_VOICES_LIST.filter(v => v.lang === "hi")
+        : KOKORO_VOICES_LIST.filter(v => v.lang === "en");
       const currentIdx = list.findIndex(v => v.id === activeVoiceId);
       const nextIdx = (currentIdx + 1) % list.length;
       const nextVoice = list[nextIdx];
       activeVoiceId = nextVoice.id;
       langBadge.textContent = nextVoice.label;
-      langBadge.title = `Piper Neural TTS • Current: ${nextVoice.name} (${nextVoice.gender})`;
+      langBadge.title = `Kokoro-82M Studio Neural • Current: ${nextVoice.name} (${nextVoice.gender})`;
       if (activeLanguage === "hi") {
-        chrome.storage.local.set({ preferredHindiVoice: nextVoice.id });
+        chrome.storage.local.set({ kokoroHindiVoice: nextVoice.id });
       } else {
-        chrome.storage.local.set({ preferredEnglishVoice: nextVoice.id });
+        chrome.storage.local.set({ kokoroVoice: nextVoice.id });
       }
     }
   });
@@ -404,7 +418,7 @@
             readingText.textContent = `⚡ Switching to Instant Local Engine...`;
             await new Promise(r => setTimeout(r, 600));
             if (activeSession === geminiSessionToken && isPlaying) {
-              fallbackToPiper(text);
+              fallbackToKokoro(text);
             }
           } else {
             playSentence(idx + 1);
@@ -417,11 +431,11 @@
       return;
     }
 
-    // Default: Instant Local Piper Engine
-    fallbackToPiper(text);
+    // Default: Instant Local Kokoro-82M Neural Engine
+    fallbackToKokoro(text);
   }
 
-  function fallbackToPiper(text) {
+  function fallbackToKokoro(text) {
     isGeminiAudioMode = false;
     activeChunks = [];
     const rawSentences = text.match(/[^.!?।\n]+[.!?।\n]+|[^.!?।\n]+$/g) || [text];
@@ -439,10 +453,10 @@
 
     if (activeChunks.length === 0) return;
 
-    const allVoices = [...HINDI_VOICES, ...ENGLISH_VOICES];
+    const allVoices = [...KOKORO_VOICES_LIST, ...HINDI_VOICES, ...ENGLISH_VOICES];
     const activeVoiceObj = allVoices.find(v => v.id === activeVoiceId);
     const voiceDisplayName = activeVoiceObj ? `${activeVoiceObj.name} (${activeVoiceObj.gender})` : activeVoiceId;
-    voiceDisplay.textContent = `Instant Local: ${voiceDisplayName}`;
+    voiceDisplay.textContent = `⚡ Kokoro Neural: ${voiceDisplayName}`;
     playerHUD.style.display = "block";
     playPauseBtn.textContent = "⏸";
     isPlaying = true;
@@ -706,6 +720,16 @@
       progressFill.style.width = `${percent}%`;
 
       highlightActiveSentence(message.text);
+    } else if (message.type === "KOKORO_STATUS") {
+      if (message.status === "downloading" || message.status === "loading") {
+        readingText.textContent = `⚡ ${message.message}`;
+        if (message.progress) {
+          progressText.textContent = `${message.progress}%`;
+          progressFill.style.width = `${message.progress}%`;
+        }
+      } else if (message.status === "ready") {
+        readingText.textContent = "⚡ Kokoro-82M Ready (100% Offline)";
+      }
     } else if (message.type === "PLAYBACK_FINISHED") {
       stopAllAudio();
     } else if (message.type === "TRIGGER_SPEAK_SELECTION") {

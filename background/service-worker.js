@@ -81,7 +81,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         "SET_PLAYBACK_SPEED",
         "SEEK_TO_CHUNK",
         "DOWNLOAD_MODEL",
-        "GET_PLAYER_STATUS"
+        "GET_PLAYER_STATUS",
+        "PRELOAD_KOKORO"
       ];
 
       if (offscreenActionTypes.includes(message.type)) {
@@ -99,7 +100,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         "CHUNK_COMPLETED",
         "PLAYBACK_FINISHED",
         "PLAYBACK_ERROR",
-        "DOWNLOAD_PROGRESS"
+        "DOWNLOAD_PROGRESS",
+        "KOKORO_STATUS"
       ];
 
       if (contentEventTypes.includes(message.type)) {

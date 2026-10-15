@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Piper Neural Text-to-Speech",
-  "version": "1.1.2",
-  "description": "Read aloud selected text with Google Gemini 3.8 AI & Piper TTS, auto Hindi/English language detection, smart AI summarization, mouse speed scrubbing, and hover-to-seek.",
+  "name": "Piper & Kokoro Neural Text-to-Speech",
+  "version": "1.2.0",
+  "description": "Read aloud selected text with Google Gemini 3.8 AI & Kokoro-82M Studio Neural Voice, 100% offline local engine, auto Hindi/English language detection, smart AI summarization, mouse speed scrubbing, and hover-to-seek.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -15,7 +15,7 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "Piper Neural TTS Settings"
+    "default_title": "Piper & Kokoro Neural TTS Settings"
   },
   "background": {
     "service_worker": "background/service-worker.js"
@@ -28,6 +28,7 @@
   ],
   "host_permissions": [
     "https://*.huggingface.co/*",
+    "https://cdn.jsdelivr.net/*",
     "https://rhasspy.github.io/*",
     "https://generativelanguage.googleapis.com/*"
   ],
@@ -48,7 +49,9 @@
         "icons/*",
         "content/*",
         "offscreen/*",
-        "lib/*"
+        "lib/*",
+        "lib/kokoro/*",
+        "lib/kokoro/voices/*"
       ],
       "matches": ["<all_urls>"]
     }

@@ -1,5 +1,7 @@
-// Offscreen Document Audio Engine & Playback Controller
-// Manages Web Audio API context, ONNX models, sentence queue, speed control, and instant seek
+// Offscreen Document Audio Engine & Kokoro-82M Neural Synthesizer
+// Manages Web Audio API context, Kokoro ONNX model, pipelined sentence queue, speed control, and instant seek
+
+import { KokoroTTS, env } from "../lib/kokoro/kokoro.web.js";
 
 let audioCtx = null;
 let currentSourceNode = null;
@@ -8,10 +10,15 @@ let currentChunkIndex = 0;
 let isPlaying = false;
 let isPaused = false;
 let playbackSpeed = 1.0;
-let activeVoiceId = "en_US-lessac-low";
-let activeModelConfig = null;
-let activeUtterance = null; // Web Speech fallback instance if ONNX model is still downloading
+let activeVoiceId = "af_heart";
 let sessionEpoch = 0; // Monotonic token to prevent concurrent audio playback cascades
+let activeUtterance = null; // Web Speech fallback instance if ONNX model is still initializing
+
+// Kokoro Engine State
+let kokoroModelInstance = null;
+let isKokoroInitializing = false;
+let kokoroInitError = null;
+const chunkAudioCache = new Map(); // chunkIndex -> Promise<{ audioBuffer: AudioBuffer } | null>
 
 function getAudioContext() {
   if (!audioCtx) {
@@ -25,50 +32,157 @@ function getAudioContext() {
 }
 
 /**
- * Downloads a Piper voice model (.onnx and .onnx.json) from Hugging Face and saves to IndexedDB.
+ * Configure environment and initialize Kokoro-82M TTS singleton.
  */
-async function downloadVoiceModel(voiceId, onProgress) {
-  const voice = PIPER_VOICES[voiceId];
-  if (!voice) throw new Error(`Unknown voice ID: ${voiceId}`);
+async function getKokoroModel(onProgress) {
+  if (kokoroModelInstance) return kokoroModelInstance;
 
-  const onnxUrl = getVoiceUrl(voice.onnxPath);
-  const jsonUrl = getVoiceUrl(voice.jsonPath);
-
-  // 1. Fetch JSON config
-  const jsonResp = await fetch(jsonUrl);
-  if (!jsonResp.ok) throw new Error(`Failed to download voice config: ${jsonResp.statusText}`);
-  const configJson = await jsonResp.json();
-
-  // 2. Fetch ONNX binary with progress tracking
-  const onnxResp = await fetch(onnxUrl);
-  if (!onnxResp.ok) throw new Error(`Failed to download ONNX weights: ${onnxResp.statusText}`);
-
-  const contentLength = +(onnxResp.headers.get("Content-Length") || 0);
-  const reader = onnxResp.body.getReader();
-  let receivedLength = 0;
-  const chunks = [];
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    receivedLength += value.length;
-    if (contentLength > 0 && onProgress) {
-      const percent = Math.round((receivedLength / contentLength) * 100);
-      onProgress({ voiceId, percent, receivedMB: (receivedLength / (1024 * 1024)).toFixed(1) });
+  if (isKokoroInitializing) {
+    while (isKokoroInitializing) {
+      await new Promise(r => setTimeout(r, 80));
     }
+    if (kokoroModelInstance) return kokoroModelInstance;
+    throw new Error(kokoroInitError || "Failed to initialize Kokoro TTS engine");
   }
 
-  // Combine chunks into single ArrayBuffer
-  const allChunks = new Uint8Array(receivedLength);
-  let position = 0;
-  for (const chunk of chunks) {
-    allChunks.set(chunk, position);
-    position += chunk.length;
-  }
+  isKokoroInitializing = true;
+  kokoroInitError = null;
 
-  await saveModelToDB(voiceId, allChunks.buffer, configJson);
-  return { configJson, sizeBytes: receivedLength };
+  try {
+    // Point wasmPaths to extension's local directory
+    const wasmBase = chrome.runtime.getURL("lib/kokoro/");
+    env.wasmPaths = wasmBase.endsWith("/") ? wasmBase : wasmBase + "/";
+
+    // Respect Cross-Origin Isolation status
+    if (typeof self !== "undefined" && !self.crossOriginIsolated) {
+      if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
+        env.backends.onnx.wasm.numThreads = 1;
+      }
+    }
+
+    // Auto-detect WebGPU hardware acceleration
+    let device = "wasm";
+    if (typeof navigator !== "undefined" && navigator.gpu) {
+      try {
+        const adapter = await navigator.gpu.requestAdapter();
+        if (adapter) {
+          device = "webgpu";
+          console.log("[Kokoro TTS] WebGPU hardware acceleration active!");
+        }
+      } catch (e) {
+        console.warn("[Kokoro TTS] WebGPU probe error, falling back to WASM SIMD:", e);
+        device = "wasm";
+      }
+    }
+
+    broadcastEvent("KOKORO_STATUS", {
+      status: "loading",
+      message: "Loading Kokoro-82M Neural Voice Model...",
+      progress: 5
+    });
+
+    kokoroModelInstance = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
+      dtype: "q8",
+      device,
+      progress_callback: (p) => {
+        if (p.status === "progress") {
+          const pct = Math.round(p.progress || 0);
+          broadcastEvent("KOKORO_STATUS", {
+            status: "downloading",
+            file: p.file,
+            progress: pct,
+            message: `Downloading Kokoro-82M Neural Engine (${pct}%)...`
+          });
+          if (onProgress) onProgress(pct);
+        }
+      }
+    });
+
+    console.log("[Kokoro TTS] Kokoro-82M neural synthesizer ready!");
+    broadcastEvent("KOKORO_STATUS", {
+      status: "ready",
+      message: "Kokoro-82M Ready (100% Offline)",
+      progress: 100
+    });
+
+    return kokoroModelInstance;
+  } catch (err) {
+    console.error("[Kokoro TTS] Initialization failure:", err);
+    kokoroInitError = err.message;
+    broadcastEvent("KOKORO_STATUS", {
+      status: "error",
+      message: `Kokoro load failed: ${err.message}`
+    });
+    throw err;
+  } finally {
+    isKokoroInitializing = false;
+  }
+}
+
+/**
+ * Primes the browser's Cache API with bundled voice files from extension package
+ * so inference runs 100% offline with 0ms network latency.
+ */
+async function primeLocalVoiceCache(voiceId) {
+  try {
+    const cache = await caches.open("kokoro-voices");
+    const hfUrl = `https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/voices/${voiceId}.bin`;
+    const match = await cache.match(hfUrl);
+    if (!match) {
+      const localUrl = chrome.runtime.getURL(`lib/kokoro/voices/${voiceId}.bin`);
+      const resp = await fetch(localUrl);
+      if (resp.ok) {
+        const buf = await resp.arrayBuffer();
+        await cache.put(hfUrl, new Response(buf, {
+          headers: { "Content-Type": "application/octet-stream" }
+        }));
+        console.log(`[Kokoro TTS] Primed voice ${voiceId} into offline cache.`);
+      }
+    }
+  } catch (err) {
+    console.warn(`[Kokoro TTS] Voice cache priming notice for ${voiceId}:`, err);
+  }
+}
+
+/**
+ * Synthesizes a chunk of text into a Web Audio API AudioBuffer using Kokoro-82M.
+ */
+async function synthesizeKokoroChunk(text, voiceId) {
+  const model = await getKokoroModel();
+  await primeLocalVoiceCache(voiceId);
+
+  // Fallback to af_heart if specified voice is not recognized
+  const targetVoice = (model.voices && model.voices[voiceId]) ? voiceId : "af_heart";
+
+  // Generate speech at default 1.0x rate (speed modulation is handled dynamically by Web Audio API)
+  const rawAudio = await model.generate(text, {
+    voice: targetVoice,
+    speed: 1.0
+  });
+
+  const ctx = getAudioContext();
+  const sampleRate = rawAudio.sampling_rate || 24000;
+  const float32Data = rawAudio.audio;
+
+  const audioBuffer = ctx.createBuffer(1, float32Data.length, sampleRate);
+  audioBuffer.copyToChannel(float32Data, 0);
+
+  return audioBuffer;
+}
+
+/**
+ * Pipelining: Prefetches and synthesizes chunk at specified index ahead of time.
+ */
+function prefetchChunk(idx, voiceId) {
+  if (idx < 0 || idx >= activeChunks.length || chunkAudioCache.has(idx)) {
+    return;
+  }
+  const chunkText = activeChunks[idx].text;
+  const promise = synthesizeKokoroChunk(chunkText, voiceId).catch((err) => {
+    console.warn(`[Kokoro TTS] Prefetch failed for chunk ${idx}:`, err);
+    return null; // Signals fallback to WebSpeech
+  });
+  chunkAudioCache.set(idx, promise);
 }
 
 /**
@@ -78,18 +192,19 @@ async function startPlayback(chunks, voiceId, speed = 1.0, startIndex = 0) {
   stopPlayback();
 
   activeChunks = chunks || [];
-  activeVoiceId = voiceId || "en_US-lessac-low";
+  activeVoiceId = voiceId || "af_heart";
   playbackSpeed = speed;
   currentChunkIndex = Math.max(0, Math.min(startIndex, activeChunks.length - 1));
   isPlaying = true;
   isPaused = false;
+  chunkAudioCache.clear();
 
   getAudioContext();
 
-  // Check if voice is in IndexedDB
-  const cached = await getModelFromDB(activeVoiceId);
-  if (cached) {
-    activeModelConfig = cached.configJson;
+  // Prefetch Sentence 0 and Sentence 1 immediately for instant pipelined response
+  prefetchChunk(currentChunkIndex, activeVoiceId);
+  if (currentChunkIndex + 1 < activeChunks.length) {
+    prefetchChunk(currentChunkIndex + 1, activeVoiceId);
   }
 
   playCurrentChunk();
@@ -117,110 +232,62 @@ async function playCurrentChunk() {
     speed: playbackSpeed
   });
 
-  try {
-    const voice = PIPER_VOICES[activeVoiceId] || PIPER_VOICES["en_US-lessac-low"];
-    const cached = await getModelFromDB(activeVoiceId);
+  // Prefetch upcoming sentences while current is playing
+  if (currentChunkIndex + 1 < activeChunks.length) {
+    prefetchChunk(currentChunkIndex + 1, activeVoiceId);
+  }
+  if (currentChunkIndex + 2 < activeChunks.length) {
+    prefetchChunk(currentChunkIndex + 2, activeVoiceId);
+  }
 
-    // If neural model is cached, perform neural audio synthesis
-    if (cached && cached.onnxBuffer && cached.configJson) {
-      await playNeuralChunk(chunk.text, cached, voice);
-    } else {
-      // Instant Fallback using Web Speech API with gender-matched voice
-      await playWebSpeechChunk(chunk.text, voice.language, voice);
+  try {
+    // Check if we have pre-synthesized audio for this chunk
+    if (!chunkAudioCache.has(currentChunkIndex)) {
+      prefetchChunk(currentChunkIndex, activeVoiceId);
     }
+
+    const audioBuffer = await chunkAudioCache.get(currentChunkIndex);
 
     // Strict guard against superseded seeks, duplicate loops, or stopped sessions
     if (currentEpoch !== sessionEpoch || !isPlaying || isPaused) {
       return;
     }
 
-    // Move to next chunk if not interrupted
+    if (audioBuffer) {
+      // Play high-fidelity Kokoro 24kHz Studio Audio Buffer
+      await playAudioBuffer(audioBuffer);
+    } else {
+      // Graceful fallback to system WebSpeech API if model is still downloading
+      await playWebSpeechChunk(chunk.text);
+    }
+
+    if (currentEpoch !== sessionEpoch || !isPlaying || isPaused) {
+      return;
+    }
+
+    // Clean up finished chunk from cache memory
+    chunkAudioCache.delete(currentChunkIndex);
+
+    // Move to next sentence chunk
     currentChunkIndex++;
     playCurrentChunk();
   } catch (err) {
-    console.error("[Piper Offscreen] Error playing chunk:", err);
+    console.error("[Kokoro Offscreen] Error playing chunk:", err);
     broadcastEvent("PLAYBACK_ERROR", { chunkId: chunk.id, error: err.message });
-  }
-}
-
-function getBestSystemVoice(langCode, voiceInfo) {
-  if (!window.speechSynthesis) return null;
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices || voices.length === 0) return null;
-
-  const targetPrefix = langCode === "hi" ? "hi" : "en";
-  const isFemale = voiceInfo && voiceInfo.gender === "female";
-
-  const candidates = voices.filter(v => v.lang.toLowerCase().replace("_", "-").startsWith(targetPrefix));
-  if (candidates.length === 0) return null;
-
-  if (isFemale) {
-    const femaleVoice = candidates.find(v => 
-      v.name.toLowerCase().includes("female") || 
-      v.name.toLowerCase().includes("zira") || 
-      v.name.toLowerCase().includes("priya") ||
-      v.name.toLowerCase().includes("google")
-    );
-    if (femaleVoice) return femaleVoice;
-  } else {
-    const maleVoice = candidates.find(v => 
-      v.name.toLowerCase().includes("male") || 
-      v.name.toLowerCase().includes("david") || 
-      v.name.toLowerCase().includes("pratham")
-    );
-    if (maleVoice) return maleVoice;
-  }
-
-  return candidates[0];
-}
-
-/**
- * Synthesizes and plays a chunk using Web Speech API fallback with exact speed control.
- * Adds buffer flushing gap to eliminate the metallic acoustic echo.
- */
-function playWebSpeechChunk(text, langCode, voiceInfo) {
-  return new Promise((resolve) => {
-    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
-      window.speechSynthesis.cancel();
+    // Advance to next sentence on error
+    if (currentEpoch === sessionEpoch && isPlaying) {
+      currentChunkIndex++;
+      playCurrentChunk();
     }
-
-    // Small delay ensures audio output buffer drains completely, eliminating double-voice echo
-    setTimeout(() => {
-      activeUtterance = new SpeechSynthesisUtterance(text);
-      activeUtterance.rate = playbackSpeed;
-      activeUtterance.lang = langCode === "hi" ? "hi-IN" : "en-US";
-
-      const matchedVoice = getBestSystemVoice(langCode, voiceInfo);
-      if (matchedVoice) {
-        activeUtterance.voice = matchedVoice;
-      }
-
-      activeUtterance.onend = () => {
-        activeUtterance = null;
-        resolve();
-      };
-
-      activeUtterance.onerror = (e) => {
-        console.warn("[WebSpeech Fallback] Event error:", e);
-        activeUtterance = null;
-        resolve();
-      };
-
-      window.speechSynthesis.speak(activeUtterance);
-    }, 45);
-  });
+  }
 }
 
 /**
- * Synthesizes a chunk using Piper neural model data through Web Audio API.
+ * Plays a Web Audio API AudioBuffer with real-time speed control.
  */
-async function playNeuralChunk(text, cachedModel, voice) {
+function playAudioBuffer(audioBuffer) {
   const ctx = getAudioContext();
-  const sampleRate = (cachedModel.configJson && cachedModel.configJson.audio && cachedModel.configJson.audio.sample_rate) || voice.sampleRate || 22050;
 
-  // Generate audio buffer from text tokens
-  const audioBuffer = ctx.createBuffer(1, Math.max(sampleRate * 0.5, Math.floor(sampleRate * (text.length / 14))), sampleRate);
-  
   return new Promise((resolve) => {
     currentSourceNode = ctx.createBufferSource();
     currentSourceNode.buffer = audioBuffer;
@@ -233,6 +300,42 @@ async function playNeuralChunk(text, cachedModel, voice) {
     };
 
     currentSourceNode.start(0);
+  });
+}
+
+/**
+ * Synthesizes and plays a chunk using Web Speech API fallback.
+ */
+function playWebSpeechChunk(text) {
+  return new Promise((resolve) => {
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+      window.speechSynthesis.cancel();
+    }
+
+    setTimeout(() => {
+      activeUtterance = new SpeechSynthesisUtterance(text);
+      activeUtterance.rate = playbackSpeed;
+
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        const isHindi = /[\u0900-\u097F]/.test(text);
+        const prefix = isHindi ? "hi" : "en";
+        const matched = voices.find(v => v.lang.toLowerCase().startsWith(prefix));
+        if (matched) activeUtterance.voice = matched;
+      }
+
+      activeUtterance.onend = () => {
+        activeUtterance = null;
+        resolve();
+      };
+
+      activeUtterance.onerror = () => {
+        activeUtterance = null;
+        resolve();
+      };
+
+      window.speechSynthesis.speak(activeUtterance);
+    }, 45);
   });
 }
 
@@ -259,18 +362,19 @@ function seekToChunk(targetChunkId) {
   currentChunkIndex = targetIndex;
   isPlaying = true;
   isPaused = false;
+
+  // Immediately prefetch target chunk
+  prefetchChunk(currentChunkIndex, activeVoiceId);
   playCurrentChunk();
 }
 
 /**
  * Updates playback speed dynamically (0.5x to 2.5x).
- * Modulates Web Audio node in real time; allows Web Speech to apply rate to next sentence
- * without stuttering restarts.
+ * Modulates Web Audio node in real time.
  */
 function setPlaybackSpeed(newSpeed) {
   playbackSpeed = Math.max(0.5, Math.min(2.5, parseFloat(newSpeed) || 1.0));
-  
-  // Real-time update on active Web Audio node with exponential ramp
+
   if (currentSourceNode && currentSourceNode.playbackRate && audioCtx) {
     try {
       currentSourceNode.playbackRate.setValueAtTime(playbackSpeed, audioCtx.currentTime);
@@ -357,11 +461,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ status: "seeked", chunkId: message.chunkId });
       break;
 
-    case "DOWNLOAD_MODEL":
-      downloadVoiceModel(message.voiceId, (progress) => {
-        broadcastEvent("DOWNLOAD_PROGRESS", progress);
-      }).then((result) => {
-        sendResponse({ success: true, result });
+    case "PRELOAD_KOKORO":
+      getKokoroModel((pct) => {
+        broadcastEvent("DOWNLOAD_PROGRESS", { percent: pct });
+      }).then(() => {
+        sendResponse({ success: true, status: "ready" });
       }).catch((err) => {
         sendResponse({ success: false, error: err.message });
       });
@@ -374,7 +478,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         currentChunkIndex,
         totalChunks: activeChunks.length,
         playbackSpeed,
-        activeVoiceId
+        activeVoiceId,
+        kokoroReady: !!kokoroModelInstance
       });
       break;
   }
