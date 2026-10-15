@@ -18,8 +18,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   const geminiVoiceSelect = document.getElementById("gemini-voice-select");
   const geminiStatusBadge = document.getElementById("gemini-status-badge");
 
+  // Engine Mode Control
+  const speechEngineSelect = document.getElementById("speech-engine-select");
+
   // Load existing settings
   const settings = await getSettings();
+  if (settings.speechEngine && speechEngineSelect) {
+    speechEngineSelect.value = settings.speechEngine;
+  }
+  if (speechEngineSelect) {
+    speechEngineSelect.addEventListener("change", () => {
+      updateSettings({ speechEngine: speechEngineSelect.value });
+    });
+  }
   if (settings.preferredLanguage) languageModeSelect.value = settings.preferredLanguage;
   if (settings.defaultSpeed) {
     defaultSpeedSlider.value = settings.defaultSpeed;

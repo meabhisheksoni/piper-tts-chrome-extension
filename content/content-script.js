@@ -77,6 +77,8 @@
   let userGeminiApiKey = "";
   let userGeminiModel = "gemini-3.8-flash";
   let userGeminiVoice = "Puck";
+  let userSpeechEngine = "gemini";
+  let geminiSessionToken = 0;
   let activeGeminiAudio = null;
   let isGeminiAudioMode = false;
   let lastSummaryResult = "";
@@ -209,6 +211,7 @@
           geminiApiKey: "",
           geminiModel: "gemini-3.8-flash",
           geminiVoice: "Puck",
+          speechEngine: "gemini",
           preferredHindiVoice: "hi_IN-pratham-medium",
           preferredEnglishVoice: "en_US-lessac-medium",
           defaultSpeed: 1.0
@@ -217,11 +220,12 @@
           const rawModel = settings.geminiModel || "gemini-3.8-flash";
           userGeminiModel = (rawModel.includes("2.0") || rawModel.includes("2.5")) ? "gemini-3.8-flash" : rawModel;
           userGeminiVoice = settings.geminiVoice || "Puck";
+          userSpeechEngine = settings.speechEngine || "gemini";
           currentSpeed = settings.defaultSpeed || 1.0;
           speedValue.textContent = `${currentSpeed.toFixed(1)}x`;
 
-          // If Gemini API key is configured, enhance pill with AI badge
-          if (userGeminiApiKey) {
+          // If Gemini AI engine is chosen and API key is present
+          if (userSpeechEngine === "gemini" && userGeminiApiKey) {
             speakIcon.textContent = "✨";
             speakText.textContent = "Human Speak";
             const voiceObj = GEMINI_VOICE_LIST.find(v => v.id === userGeminiVoice) || GEMINI_VOICE_LIST[0];
@@ -229,20 +233,20 @@
             langBadge.className = "piper-lang-badge gemini";
             langBadge.title = `Google Gemini AI Active • Voice: ${voiceObj.name} (${voiceObj.gender}) • Click to cycle persona`;
           } else {
-            speakIcon.textContent = "▶";
-            speakText.textContent = "Speak";
+            speakIcon.textContent = "⚡";
+            speakText.textContent = "Instant Local";
             if (activeLanguage === "hi") {
               activeVoiceId = settings.preferredHindiVoice || "hi_IN-pratham-medium";
               const voiceObj = HINDI_VOICES.find(v => v.id === activeVoiceId) || HINDI_VOICES[0];
               langBadge.textContent = voiceObj.label;
               langBadge.className = "piper-lang-badge hindi";
-              langBadge.title = `Piper Neural TTS • Current: ${voiceObj.name} • Click to cycle voice`;
+              langBadge.title = `Instant Local Piper (0ms delay) • Current: ${voiceObj.name} • Click to cycle voice`;
             } else {
               activeVoiceId = settings.preferredEnglishVoice || "en_US-lessac-medium";
               const voiceObj = ENGLISH_VOICES.find(v => v.id === activeVoiceId) || ENGLISH_VOICES[0];
               langBadge.textContent = voiceObj.label;
               langBadge.className = "piper-lang-badge english";
-              langBadge.title = `Piper Neural TTS • Current: ${voiceObj.name} • Click to cycle voice`;
+              langBadge.title = `Instant Local Piper (0ms delay) • Current: ${voiceObj.name} • Click to cycle voice`;
             }
           }
         });
@@ -306,70 +310,118 @@
   });
 
   /**
-   * Reads text aloud using Google Gemini Natural AI Audio (if configured) or Piper TTS.
+   * Reads text aloud using Google Gemini Natural AI Audio with sub-second pipelining,
+   * or Instant Local Piper TTS.
    */
   async function startReading(text, range) {
     if (!text) return;
     stopAllAudio();
 
-    if (userGeminiApiKey && typeof generateGeminiAudio === "function") {
-      // --- GEMINI 2.0 / 3.8 NATURAL HUMAN AI SPEECH ---
+    const activeSession = ++geminiSessionToken;
+
+    // Fast-path: Check if Gemini AI Engine is active
+    if (userSpeechEngine === "gemini" && userGeminiApiKey && typeof generateGeminiAudio === "function") {
       isGeminiAudioMode = true;
       isPlaying = true;
-      voiceDisplay.textContent = `Gemini AI: ${userGeminiVoice} (Human Voice)`;
-      readingText.textContent = `Synthesizing natural conversational speech with pauses...`;
-      progressFill.style.width = "10%";
-      progressText.textContent = "Connecting...";
+      voiceDisplay.textContent = `Gemini AI: ${userGeminiVoice} (Studio Voice)`;
+      readingText.textContent = `Connecting to Gemini 3.8 speech engine...`;
+      progressFill.style.width = "5%";
+      progressText.textContent = "Loading...";
       playerHUD.style.display = "block";
       playPauseBtn.textContent = "⏸";
 
-      // Highlight selected container text
       highlightSelection(range);
 
-      try {
-        const { audioBlobUrl } = await generateGeminiAudio(
-          text,
+      // Split text into natural sentence chunks
+      const sentenceRegex = /[^.!?।\n]+[.!?।\n]+|[^.!?।\n]+$/g;
+      const rawSentences = text.match(sentenceRegex) || [text];
+      const sentences = rawSentences.map(s => s.trim()).filter(s => s.length > 0);
+
+      if (sentences.length === 0) return;
+
+      // Prefetch pipeline map: index -> Promise<{ audioBlobUrl, mimeType }>
+      const prefetchMap = new Map();
+
+      function prefetchSentence(idx) {
+        if (idx >= sentences.length || prefetchMap.has(idx)) return;
+        prefetchMap.set(idx, generateGeminiAudio(
+          sentences[idx],
           userGeminiApiKey,
           userGeminiVoice,
           userGeminiModel
-        );
-
-        if (!isPlaying) return; // playback was stopped while generating
-
-        readingText.textContent = `"${text.substring(0, 110)}${text.length > 110 ? "..." : ""}"`;
-        const audio = new Audio(audioBlobUrl);
-        audio.playbackRate = currentSpeed;
-        activeGeminiAudio = audio;
-
-        audio.ontimeupdate = () => {
-          if (!audio.duration) return;
-          const pct = Math.round((audio.currentTime / audio.duration) * 100);
-          progressFill.style.width = `${pct}%`;
-          const curSec = formatTime(audio.currentTime);
-          const totalSec = formatTime(audio.duration);
-          progressText.textContent = `${curSec} / ${totalSec}`;
-        };
-
-        audio.onended = () => {
-          stopAllAudio();
-        };
-
-        audio.onerror = (e) => {
-          console.warn("[Gemini Audio Playback Error]", e);
-          stopAllAudio();
-        };
-
-        await audio.play();
-        return;
-      } catch (err) {
-        console.warn("[Gemini Audio API Error, falling back to Piper]", err);
-        readingText.textContent = `⚠️ Gemini API note: ${err.message}. Falling back to Piper...`;
-        await new Promise(r => setTimeout(r, 1200));
-        // Continue to Piper fallback below
+        ));
       }
+
+      // Immediately prefetch Sentence 0 (<500ms latency) and Sentence 1
+      prefetchSentence(0);
+      if (sentences.length > 1) {
+        prefetchSentence(1);
+      }
+
+      async function playSentence(idx) {
+        if (activeSession !== geminiSessionToken || !isPlaying || idx >= sentences.length) {
+          if (idx >= sentences.length) stopAllAudio();
+          return;
+        }
+
+        const sentenceText = sentences[idx];
+        readingText.textContent = `"${sentenceText}"`;
+        progressText.textContent = `${idx + 1} / ${sentences.length}`;
+        progressFill.style.width = `${Math.round(((idx + 1) / sentences.length) * 100)}%`;
+        highlightActiveSentence(sentenceText);
+
+        // Prefetch next 2 sentences while current sentence is playing
+        if (idx + 1 < sentences.length) prefetchSentence(idx + 1);
+        if (idx + 2 < sentences.length) prefetchSentence(idx + 2);
+
+        try {
+          const { audioBlobUrl } = await prefetchMap.get(idx);
+          if (activeSession !== geminiSessionToken || !isPlaying) return;
+
+          const audio = new Audio(audioBlobUrl);
+          audio.playbackRate = currentSpeed;
+          activeGeminiAudio = audio;
+
+          audio.onended = () => {
+            try { URL.revokeObjectURL(audioBlobUrl); } catch {}
+            if (activeSession === geminiSessionToken && isPlaying) {
+              playSentence(idx + 1);
+            }
+          };
+
+          audio.onerror = (e) => {
+            console.warn(`[Gemini Audio Error on sentence ${idx}]`, e);
+            if (activeSession === geminiSessionToken && isPlaying) {
+              playSentence(idx + 1);
+            }
+          };
+
+          await audio.play();
+        } catch (err) {
+          console.warn(`[Gemini Sentence ${idx} Failed]`, err);
+          // If first sentence fails, immediately switch to instant local Piper
+          if (idx === 0) {
+            readingText.textContent = `⚡ Switching to Instant Local Engine...`;
+            await new Promise(r => setTimeout(r, 600));
+            if (activeSession === geminiSessionToken && isPlaying) {
+              fallbackToPiper(text);
+            }
+          } else {
+            playSentence(idx + 1);
+          }
+        }
+      }
+
+      // Start playing Sentence 0 immediately!
+      playSentence(0);
+      return;
     }
 
-    // --- PIPER NEURAL OFFLINE TTS FALLBACK ---
+    // Default: Instant Local Piper Engine
+    fallbackToPiper(text);
+  }
+
+  function fallbackToPiper(text) {
     isGeminiAudioMode = false;
     activeChunks = [];
     const rawSentences = text.match(/[^.!?।\n]+[.!?।\n]+|[^.!?।\n]+$/g) || [text];
@@ -390,7 +442,7 @@
     const allVoices = [...HINDI_VOICES, ...ENGLISH_VOICES];
     const activeVoiceObj = allVoices.find(v => v.id === activeVoiceId);
     const voiceDisplayName = activeVoiceObj ? `${activeVoiceObj.name} (${activeVoiceObj.gender})` : activeVoiceId;
-    voiceDisplay.textContent = `Piper TTS: ${voiceDisplayName}`;
+    voiceDisplay.textContent = `Instant Local: ${voiceDisplayName}`;
     playerHUD.style.display = "block";
     playPauseBtn.textContent = "⏸";
     isPlaying = true;
@@ -516,6 +568,7 @@
   closeHudBtn.addEventListener("click", stopAllAudio);
 
   function stopAllAudio() {
+    geminiSessionToken++;
     isPlaying = false;
     playerHUD.style.display = "none";
     hoverCue.style.display = "none";
