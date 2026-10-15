@@ -105,9 +105,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateGeminiStatusBadge(false);
   }
 
-  const activeModel = (settings.geminiModel && !settings.geminiModel.includes("2.0") && !settings.geminiModel.includes("2.5"))
-    ? settings.geminiModel
-    : "gemini-3.8-flash";
+  const activeModel = settings.geminiModel || "gemini-2.5-flash-preview-tts";
   geminiModelSelect.value = activeModel;
   if (settings.geminiVoice) geminiVoiceSelect.value = settings.geminiVoice;
 
@@ -166,6 +164,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Test Voice Sample (Supports Gemini 3.8 Human Voice OR Kokoro-82M Offline Voice)
   let activeTestAudio = null;
 
+  function resetTestBtn() {
+    testVoiceBtn.innerHTML = `<span>▶</span><span>Test Active Voice Sample</span>`;
+    testVoiceBtn.style.background = "#38bdf8";
+  }
+
+  // Listen for playback events from background/offscreen
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === "CHUNK_STARTED") {
+      testVoiceBtn.innerHTML = `<span>🔊</span><span>Playing Kokoro Studio Voice...</span>`;
+      testVoiceBtn.style.background = "#10b981";
+    } else if (msg.type === "PLAYBACK_FINISHED") {
+      resetTestBtn();
+    } else if (msg.type === "PLAYBACK_ERROR") {
+      testVoiceBtn.innerHTML = `<span>❌</span><span>${(msg.error || "Synthesis Error").substring(0, 40)}</span>`;
+      testVoiceBtn.style.background = "#ef4444";
+      setTimeout(resetTestBtn, 4500);
+    }
+  });
+
   testVoiceBtn.addEventListener("click", async () => {
     const currentSettings = await getSettings();
     const currentEngine = currentSettings.speechEngine || "gemini";
@@ -177,8 +194,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // 1. Google Gemini AI Engine
-    if (currentEngine === "gemini" && currentSettings.geminiApiKey && typeof generateGeminiAudio === "function") {
-      testVoiceBtn.innerHTML = `<span>✨</span><span>Generating Gemini AI Voice (${currentSettings.geminiVoice || "Puck"})...</span>`;
+    if (currentEngine === "gemini") {
+      if (!currentSettings.geminiApiKey) {
+        testVoiceBtn.innerHTML = `<span>🔑</span><span>Paste Gemini API Key Above</span>`;
+        testVoiceBtn.style.background = "#d97706";
+        geminiApiKeyInput.focus();
+        setTimeout(resetTestBtn, 3500);
+        return;
+      }
+
+      testVoiceBtn.innerHTML = `<span>✨</span><span>Connecting to Gemini AI (${currentSettings.geminiVoice || "Puck"})...</span>`;
       testVoiceBtn.style.background = "#6366f1";
 
       const sampleText = isHindi
@@ -186,14 +211,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         : "Hello! I am Google Gemini's natural human AI voice model. I speak with natural cadence, pauses, and expressive interviewer tone.";
 
       try {
-        const { audioBlobUrl } = await generateGeminiAudio(
+        const { audioBlobUrl, modelUsed } = await generateGeminiAudio(
           sampleText,
           currentSettings.geminiApiKey,
           currentSettings.geminiVoice || "Puck",
-          currentSettings.geminiModel || "gemini-3.8-flash-tts"
+          currentSettings.geminiModel || "gemini-2.5-flash-preview-tts"
         );
 
-        testVoiceBtn.innerHTML = `<span>🔊</span><span>Playing Gemini Human Audio...</span>`;
+        testVoiceBtn.innerHTML = `<span>🔊</span><span>Playing Gemini Human Audio (${modelUsed || "AI"})...</span>`;
         testVoiceBtn.style.background = "#10b981";
 
         const audio = new Audio(audioBlobUrl);
@@ -201,16 +226,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         activeTestAudio = audio;
 
         audio.onended = () => {
-          testVoiceBtn.innerHTML = `<span>▶</span><span>Test Active Voice Sample</span>`;
-          testVoiceBtn.style.background = "#38bdf8";
+          resetTestBtn();
           activeTestAudio = null;
         };
 
         await audio.play();
         return;
       } catch (err) {
-        console.warn("[Gemini Audio Test Failed, falling back to Kokoro]", err);
-        testVoiceBtn.innerHTML = `<span>⚠️</span><span>API Error: Testing Kokoro Local</span>`;
+        console.error("[Gemini Audio Test Failed]", err);
+        testVoiceBtn.innerHTML = `<span>❌</span><span>${err.message.substring(0, 48)}</span>`;
+        testVoiceBtn.style.background = "#ef4444";
+        setTimeout(resetTestBtn, 4500);
+        return; // Fail fast and inform user - do NOT fall through to robotic speech!
       }
     }
 
@@ -231,11 +258,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       chunks: [{ id: 0, text: sampleText, paragraphIndex: 0 }],
       voiceId: kokoroVoice,
       speed: parseFloat(defaultSpeedSlider.value) || 1.0
-    }, () => {
-      setTimeout(() => {
-        testVoiceBtn.innerHTML = `<span>▶</span><span>Test Active Voice Sample</span>`;
-        testVoiceBtn.style.background = "#38bdf8";
-      }, 4000);
     });
   });
 

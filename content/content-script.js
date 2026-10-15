@@ -233,8 +233,7 @@
           defaultSpeed: 1.0
         }, (settings) => {
           userGeminiApiKey = (settings.geminiApiKey || "").trim();
-          const rawModel = settings.geminiModel || "gemini-3.8-flash";
-          userGeminiModel = (rawModel.includes("2.0") || rawModel.includes("2.5")) ? "gemini-3.8-flash" : rawModel;
+          userGeminiModel = settings.geminiModel || "gemini-2.5-flash-preview-tts";
           userGeminiVoice = settings.geminiVoice || "Puck";
           userSpeechEngine = settings.speechEngine || "gemini";
           currentSpeed = settings.defaultSpeed || 1.0;
@@ -389,8 +388,12 @@
         if (idx + 2 < sentences.length) prefetchSentence(idx + 2);
 
         try {
-          const { audioBlobUrl } = await prefetchMap.get(idx);
+          const { audioBlobUrl, modelUsed } = await prefetchMap.get(idx);
           if (activeSession !== geminiSessionToken || !isPlaying) return;
+
+          if (modelUsed) {
+            voiceDisplay.textContent = `Gemini AI: ${userGeminiVoice} (${modelUsed})`;
+          }
 
           const audio = new Audio(audioBlobUrl);
           audio.playbackRate = currentSpeed;
@@ -413,10 +416,10 @@
           await audio.play();
         } catch (err) {
           console.warn(`[Gemini Sentence ${idx} Failed]`, err);
-          // If first sentence fails, immediately switch to instant local Piper
+          // If first sentence fails, switch to instant local Kokoro with clear error explanation
           if (idx === 0) {
-            readingText.textContent = `⚡ Switching to Instant Local Engine...`;
-            await new Promise(r => setTimeout(r, 600));
+            readingText.textContent = `⚠️ Gemini API: ${err.message}. Switching to Kokoro...`;
+            await new Promise(r => setTimeout(r, 1500));
             if (activeSession === geminiSessionToken && isPlaying) {
               fallbackToKokoro(text);
             }
@@ -730,6 +733,10 @@
       } else if (message.status === "ready") {
         readingText.textContent = "⚡ Kokoro-82M Ready (100% Offline)";
       }
+    } else if (message.type === "PLAYBACK_ERROR") {
+      readingText.textContent = `❌ Speech Error: ${message.error || "Synthesis failed"}`;
+      playPauseBtn.textContent = "▶";
+      isPlaying = false;
     } else if (message.type === "PLAYBACK_FINISHED") {
       stopAllAudio();
     } else if (message.type === "TRIGGER_SPEAK_SELECTION") {

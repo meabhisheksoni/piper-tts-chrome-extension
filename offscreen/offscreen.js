@@ -52,6 +52,8 @@ async function getKokoroModel(onProgress) {
     // Point wasmPaths to extension's local directory
     const wasmBase = chrome.runtime.getURL("lib/kokoro/");
     env.wasmPaths = wasmBase.endsWith("/") ? wasmBase : wasmBase + "/";
+    env.allowLocalModels = true;
+    env.allowRemoteModels = true;
 
     // Respect Cross-Origin Isolation status
     if (typeof self !== "undefined" && !self.crossOriginIsolated) {
@@ -77,26 +79,38 @@ async function getKokoroModel(onProgress) {
 
     broadcastEvent("KOKORO_STATUS", {
       status: "loading",
-      message: "Loading Kokoro-82M Neural Voice Model...",
-      progress: 5
+      message: "Loading Kokoro-82M Studio Neural Model (Offline)...",
+      progress: 10
     });
 
-    kokoroModelInstance = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
-      dtype: "q8",
-      device,
-      progress_callback: (p) => {
-        if (p.status === "progress") {
-          const pct = Math.round(p.progress || 0);
-          broadcastEvent("KOKORO_STATUS", {
-            status: "downloading",
-            file: p.file,
-            progress: pct,
-            message: `Downloading Kokoro-82M Neural Engine (${pct}%)...`
-          });
-          if (onProgress) onProgress(pct);
+    const localModelUrl = chrome.runtime.getURL("lib/kokoro/model");
+
+    try {
+      console.log("[Kokoro TTS] Loading bundled offline Kokoro-82M model from:", localModelUrl);
+      kokoroModelInstance = await KokoroTTS.from_pretrained(localModelUrl, {
+        dtype: "q8",
+        device
+      });
+      console.log("[Kokoro TTS] Bundled offline Kokoro model loaded successfully!");
+    } catch (localErr) {
+      console.warn("[Kokoro TTS] Bundled local model notice, trying HuggingFace CDN fallback:", localErr);
+      kokoroModelInstance = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
+        dtype: "q8",
+        device,
+        progress_callback: (p) => {
+          if (p.status === "progress") {
+            const pct = Math.round(p.progress || 0);
+            broadcastEvent("KOKORO_STATUS", {
+              status: "downloading",
+              file: p.file,
+              progress: pct,
+              message: `Downloading Kokoro-82M Neural Engine (${pct}%)...`
+            });
+            if (onProgress) onProgress(pct);
+          }
         }
-      }
-    });
+      });
+    }
 
     console.log("[Kokoro TTS] Kokoro-82M neural synthesizer ready!");
     broadcastEvent("KOKORO_STATUS", {
@@ -178,10 +192,7 @@ function prefetchChunk(idx, voiceId) {
     return;
   }
   const chunkText = activeChunks[idx].text;
-  const promise = synthesizeKokoroChunk(chunkText, voiceId).catch((err) => {
-    console.warn(`[Kokoro TTS] Prefetch failed for chunk ${idx}:`, err);
-    return null; // Signals fallback to WebSpeech
-  });
+  const promise = synthesizeKokoroChunk(chunkText, voiceId);
   chunkAudioCache.set(idx, promise);
 }
 
@@ -253,13 +264,12 @@ async function playCurrentChunk() {
       return;
     }
 
-    if (audioBuffer) {
-      // Play high-fidelity Kokoro 24kHz Studio Audio Buffer
-      await playAudioBuffer(audioBuffer);
-    } else {
-      // Graceful fallback to system WebSpeech API if model is still downloading
-      await playWebSpeechChunk(chunk.text);
+    if (!audioBuffer) {
+      throw new Error("Kokoro synthesis returned empty audio buffer");
     }
+
+    // Play high-fidelity Kokoro 24kHz Studio Audio Buffer
+    await playAudioBuffer(audioBuffer);
 
     if (currentEpoch !== sessionEpoch || !isPlaying || isPaused) {
       return;
@@ -274,11 +284,7 @@ async function playCurrentChunk() {
   } catch (err) {
     console.error("[Kokoro Offscreen] Error playing chunk:", err);
     broadcastEvent("PLAYBACK_ERROR", { chunkId: chunk.id, error: err.message });
-    // Advance to next sentence on error
-    if (currentEpoch === sessionEpoch && isPlaying) {
-      currentChunkIndex++;
-      playCurrentChunk();
-    }
+    isPlaying = false;
   }
 }
 
