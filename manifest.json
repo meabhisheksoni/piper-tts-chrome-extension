@@ -27,7 +27,8 @@
     "contextMenus"
   ],
   "host_permissions": [
-    "https://*.huggingface.co/*"
+    "https://*.huggingface.co/*",
+    "https://rhasspy.github.io/*"
   ],
   "content_scripts": [
     {

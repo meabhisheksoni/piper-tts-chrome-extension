@@ -47,11 +47,48 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateSettings({ hoverToSeekEnabled: hoverSeekToggle.checked });
   });
 
-  // Test Voice Sample
+  // Test Voice Sample with Authentic Piper Studio Quality
+  let activeTestAudio = null;
+
   testVoiceBtn.addEventListener("click", () => {
     const lang = languageModeSelect.value;
     const isHindi = lang === "hi";
     const voiceId = isHindi ? hindiVoiceSelect.value : englishVoiceSelect.value;
+    const voice = PIPER_VOICES[voiceId];
+
+    if (activeTestAudio) {
+      activeTestAudio.pause();
+      activeTestAudio = null;
+    }
+
+    if (voice && voice.sampleUrl) {
+      testVoiceBtn.innerHTML = `<span>🔊</span><span>Playing ${voice.name} (${voice.gender === "female" ? "Female" : "Male"}, ${voice.quality})...</span>`;
+      testVoiceBtn.style.background = "#818cf8";
+
+      const audio = new Audio(voice.sampleUrl);
+      audio.playbackRate = parseFloat(defaultSpeedSlider.value) || 1.0;
+      activeTestAudio = audio;
+
+      audio.onended = () => {
+        testVoiceBtn.innerHTML = `<span>▶</span><span>Test Active Voice Sample</span>`;
+        testVoiceBtn.style.background = "#38bdf8";
+        activeTestAudio = null;
+      };
+
+      audio.onerror = () => {
+        // Fallback to synthesis message if audio URL fails
+        fallbackTestSynthesis(isHindi, voiceId);
+      };
+
+      audio.play().catch(() => {
+        fallbackTestSynthesis(isHindi, voiceId);
+      });
+    } else {
+      fallbackTestSynthesis(isHindi, voiceId);
+    }
+  });
+
+  function fallbackTestSynthesis(isHindi, voiceId) {
     const sampleText = isHindi
       ? "नमस्ते! पाइपर न्यूरल टेक्स्ट-टू-स्पीच में आपका स्वागत है।"
       : "Hello! Welcome to Piper Neural Text-to-Speech running offline in your browser.";
@@ -62,7 +99,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       voiceId: voiceId,
       speed: parseFloat(defaultSpeedSlider.value)
     });
-  });
+  }
 
   // Load Cached Models from IndexedDB
   async function refreshCachedModels() {

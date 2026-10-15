@@ -118,6 +118,20 @@
   const speedValue = playerHUD.querySelector("#piper-speed-value");
   const voiceDisplay = playerHUD.querySelector("#piper-voice-display");
 
+  // Voice catalogs for quick on-page cycling
+  const HINDI_VOICES = [
+    { id: "hi_IN-pratham-medium", name: "Pratham", gender: "Male", label: "HI • Pratham (M)" },
+    { id: "hi_IN-priyamvada-medium", name: "Priyamvada", gender: "Female", label: "HI • Priyamvada (F)" },
+    { id: "hi_IN-rohan-medium", name: "Rohan", gender: "Male", label: "HI • Rohan (M)" }
+  ];
+
+  const ENGLISH_VOICES = [
+    { id: "en_US-lessac-medium", name: "Lessac", gender: "Female", label: "EN • Lessac (F)" },
+    { id: "en_US-amy-medium", name: "Amy", gender: "Female", label: "EN • Amy (F)" },
+    { id: "en_US-danny-low", name: "Danny", gender: "Male", label: "EN • Danny (M)" },
+    { id: "en_US-lessac-low", name: "Lessac Fast", gender: "Female", label: "EN • Lessac Fast" }
+  ];
+
   // Selection Handler
   document.addEventListener("mouseup", (e) => {
     // Avoid reacting if clicking inside extension HUD
@@ -132,16 +146,28 @@
         currentSelectionRange = selection.getRangeAt(0).cloneRange();
         activeLanguage = detectScript(text);
 
-        // Update Pill Badge
-        if (activeLanguage === "hi") {
-          langBadge.textContent = "HI";
-          langBadge.className = "piper-lang-badge hindi";
-          activeVoiceId = "hi_IN-pratham-medium";
-        } else {
-          langBadge.textContent = "EN";
-          langBadge.className = "piper-lang-badge english";
-          activeVoiceId = "en_US-lessac-low";
-        }
+        // Fetch user preferences
+        chrome.storage.local.get({
+          preferredHindiVoice: "hi_IN-pratham-medium",
+          preferredEnglishVoice: "en_US-lessac-medium",
+          defaultSpeed: 1.0
+        }, (settings) => {
+          if (activeLanguage === "hi") {
+            activeVoiceId = settings.preferredHindiVoice || "hi_IN-pratham-medium";
+            const voiceObj = HINDI_VOICES.find(v => v.id === activeVoiceId) || HINDI_VOICES[0];
+            langBadge.textContent = voiceObj.label;
+            langBadge.className = "piper-lang-badge hindi";
+            langBadge.title = `Click to switch voice (Current: ${voiceObj.name} ${voiceObj.gender})`;
+          } else {
+            activeVoiceId = settings.preferredEnglishVoice || "en_US-lessac-medium";
+            const voiceObj = ENGLISH_VOICES.find(v => v.id === activeVoiceId) || ENGLISH_VOICES[0];
+            langBadge.textContent = voiceObj.label;
+            langBadge.className = "piper-lang-badge english";
+            langBadge.title = `Click to switch voice (Current: ${voiceObj.name} ${voiceObj.gender})`;
+          }
+          currentSpeed = settings.defaultSpeed || 1.0;
+          speedValue.textContent = `${currentSpeed.toFixed(1)}x`;
+        });
 
         // Position Trigger Pill near selection
         const rect = currentSelectionRange.getBoundingClientRect();
@@ -154,6 +180,25 @@
         }
       }
     }, 10);
+  });
+
+  // Click on language badge to toggle through available voices (Male / Female)
+  langBadge.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const list = activeLanguage === "hi" ? HINDI_VOICES : ENGLISH_VOICES;
+    const currentIdx = list.findIndex(v => v.id === activeVoiceId);
+    const nextIdx = (currentIdx + 1) % list.length;
+    const nextVoice = list[nextIdx];
+    activeVoiceId = nextVoice.id;
+    langBadge.textContent = nextVoice.label;
+    langBadge.title = `Click to switch voice (Current: ${nextVoice.name} ${nextVoice.gender})`;
+
+    // Persist choice
+    if (activeLanguage === "hi") {
+      chrome.storage.local.set({ preferredHindiVoice: nextVoice.id });
+    } else {
+      chrome.storage.local.set({ preferredEnglishVoice: nextVoice.id });
+    }
   });
 
   // Start Speaking
@@ -184,8 +229,11 @@
 
     if (activeChunks.length === 0) return;
 
-    // Update HUD
-    voiceDisplay.textContent = activeLanguage === "hi" ? "Piper Hindi (प्रार्थम)" : "Piper English (Lessac)";
+    // Update HUD with exact voice and persona
+    const allVoices = [...HINDI_VOICES, ...ENGLISH_VOICES];
+    const activeVoiceObj = allVoices.find(v => v.id === activeVoiceId);
+    const voiceDisplayName = activeVoiceObj ? `${activeVoiceObj.name} (${activeVoiceObj.gender})` : activeVoiceId;
+    voiceDisplay.textContent = `Piper: ${voiceDisplayName}`;
     playerHUD.style.display = "block";
     playPauseBtn.textContent = "⏸";
     isPlaying = true;

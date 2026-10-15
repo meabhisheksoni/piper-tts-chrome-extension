@@ -125,8 +125,8 @@ async function playCurrentChunk() {
     if (cached && cached.onnxBuffer && cached.configJson) {
       await playNeuralChunk(chunk.text, cached, voice);
     } else {
-      // Instant Fallback using Web Speech API while model is downloading
-      await playWebSpeechChunk(chunk.text, voice.language);
+      // Instant Fallback using Web Speech API with gender-matched voice
+      await playWebSpeechChunk(chunk.text, voice.language, voice);
     }
 
     // Strict guard against superseded seeks, duplicate loops, or stopped sessions
@@ -143,29 +143,71 @@ async function playCurrentChunk() {
   }
 }
 
+function getBestSystemVoice(langCode, voiceInfo) {
+  if (!window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
+
+  const targetPrefix = langCode === "hi" ? "hi" : "en";
+  const isFemale = voiceInfo && voiceInfo.gender === "female";
+
+  const candidates = voices.filter(v => v.lang.toLowerCase().replace("_", "-").startsWith(targetPrefix));
+  if (candidates.length === 0) return null;
+
+  if (isFemale) {
+    const femaleVoice = candidates.find(v => 
+      v.name.toLowerCase().includes("female") || 
+      v.name.toLowerCase().includes("zira") || 
+      v.name.toLowerCase().includes("priya") ||
+      v.name.toLowerCase().includes("google")
+    );
+    if (femaleVoice) return femaleVoice;
+  } else {
+    const maleVoice = candidates.find(v => 
+      v.name.toLowerCase().includes("male") || 
+      v.name.toLowerCase().includes("david") || 
+      v.name.toLowerCase().includes("pratham")
+    );
+    if (maleVoice) return maleVoice;
+  }
+
+  return candidates[0];
+}
+
 /**
  * Synthesizes and plays a chunk using Web Speech API fallback with exact speed control.
+ * Adds buffer flushing gap to eliminate the metallic acoustic echo.
  */
-function playWebSpeechChunk(text, langCode) {
+function playWebSpeechChunk(text, langCode, voiceInfo) {
   return new Promise((resolve) => {
-    window.speechSynthesis.cancel();
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+      window.speechSynthesis.cancel();
+    }
 
-    activeUtterance = new SpeechSynthesisUtterance(text);
-    activeUtterance.rate = playbackSpeed;
-    activeUtterance.lang = langCode === "hi" ? "hi-IN" : "en-US";
+    // Small delay ensures audio output buffer drains completely, eliminating double-voice echo
+    setTimeout(() => {
+      activeUtterance = new SpeechSynthesisUtterance(text);
+      activeUtterance.rate = playbackSpeed;
+      activeUtterance.lang = langCode === "hi" ? "hi-IN" : "en-US";
 
-    activeUtterance.onend = () => {
-      activeUtterance = null;
-      resolve();
-    };
+      const matchedVoice = getBestSystemVoice(langCode, voiceInfo);
+      if (matchedVoice) {
+        activeUtterance.voice = matchedVoice;
+      }
 
-    activeUtterance.onerror = (e) => {
-      console.warn("[WebSpeech Fallback] Event error:", e);
-      activeUtterance = null;
-      resolve();
-    };
+      activeUtterance.onend = () => {
+        activeUtterance = null;
+        resolve();
+      };
 
-    window.speechSynthesis.speak(activeUtterance);
+      activeUtterance.onerror = (e) => {
+        console.warn("[WebSpeech Fallback] Event error:", e);
+        activeUtterance = null;
+        resolve();
+      };
+
+      window.speechSynthesis.speak(activeUtterance);
+    }, 45);
   });
 }
 
