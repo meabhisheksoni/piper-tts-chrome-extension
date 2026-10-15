@@ -260,13 +260,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    // B. Kokoro-82M Local Studio Voice (100% Offline English Studio Voice)
+    // B. Kokoro-82M Local Studio Voice (100% Offline English & Hindi)
     const selectedKokoroVoice = kokoroVoiceSelect.value || "af_heart";
+    const isKokoroHindi = selectedKokoroVoice.startsWith("h");
 
-    testVoiceBtn.innerHTML = `<span>⚡</span><span>Synthesizing Studio Audio...</span>`;
+    testVoiceBtn.innerHTML = `<span>⚡</span><span>Synthesizing Studio Audio (${selectedKokoroVoice})...</span>`;
     testVoiceBtn.style.background = "#10b981";
 
-    const sampleText = "Hello! This is Kokoro eighty-two M, running 100% locally in your browser with studio quality human voice.";
+    const sampleText = isKokoroHindi
+      ? "नमस्ते! यह कोकोरो न्यूरल वॉइस मॉडल है, जो बिना किसी सर्वर के 100% ऑफलाइन बोलता है।"
+      : "Hello! This is Kokoro eighty-two M, running 100% locally in your browser with studio quality human voice.";
 
     chrome.runtime.sendMessage({
       type: "SYNTHESIZE_AND_PLAY",

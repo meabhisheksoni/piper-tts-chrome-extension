@@ -48,16 +48,24 @@
           <label class="field-label" id="voice-field-label">Active Voice Persona</label>
           <span class="voice-badge" id="voice-badge">Offline Studio</span>
         </div>
-        <!-- Kokoro Voices Dropdown (100% Offline Studio English) -->
+        <!-- Kokoro Voices Dropdown (100% Offline Studio English & Hindi) -->
         <select id="kokoro-voice-select" class="big-select">
-          <option value="af_heart" selected>Heart (Female • Conversational #1)</option>
-          <option value="af_bella">Bella (Female • Bright & Expressive)</option>
-          <option value="af_nicole">Nicole (Female • Audiobook Narrator)</option>
-          <option value="am_adam">Adam (Male • Deep Conversational)</option>
-          <option value="am_michael">Michael (Male • Clear Narrator)</option>
-          <option value="am_puck">Puck (Male • Friendly Casual)</option>
-          <option value="bf_emma">Emma (British Female • Crisp)</option>
-          <option value="bm_george">George (British Male • BBC Style)</option>
+          <optgroup label="English Voices (Studio)">
+            <option value="af_heart" selected>Heart (Female • Conversational #1)</option>
+            <option value="af_bella">Bella (Female • Bright & Expressive)</option>
+            <option value="af_nicole">Nicole (Female • Audiobook Narrator)</option>
+            <option value="am_adam">Adam (Male • Deep Conversational)</option>
+            <option value="am_michael">Michael (Male • Clear Narrator)</option>
+            <option value="am_puck">Puck (Male • Friendly Casual)</option>
+            <option value="bf_emma">Emma (British Female • Crisp)</option>
+            <option value="bm_george">George (British Male • BBC Style)</option>
+          </optgroup>
+          <optgroup label="Hindi Voices (Kokoro Native • 100% Offline)">
+            <option value="hf_alpha">Alpha (Hindi Female • Studio)</option>
+            <option value="hf_beta">Beta (Hindi Female • Clear)</option>
+            <option value="hm_omega">Omega (Hindi Male • Deep Natural)</option>
+            <option value="hm_psi">Psi (Hindi Male • Narrative)</option>
+          </optgroup>
         </select>
         <!-- Gemini Voices Dropdown (Cloud AI • Hindi & English) -->
         <select id="gemini-voice-select" class="big-select" style="display:none;">

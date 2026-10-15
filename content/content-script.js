@@ -316,27 +316,9 @@
 
     // Check if selected text is Devanagari Hindi
     const isHindiText = /[\u0900-\u097F]/.test(text);
-    if (isHindiText) {
-      if (userGeminiApiKey) {
-        playerHUD.style.display = "block";
-        hudTag.className = "piper-hud-tag gemini";
-        hudTag.textContent = "✨ Gemini AI";
-        voiceDisplay.textContent = `${userGeminiVoice} (Hindi)`;
-        readingText.innerHTML = `⚡ <i>Kokoro is an English studio model. Routing to Google Gemini AI for Hindi...</i>`;
-        setTimeout(() => {
-          startReadingWithGemini(text, range);
-        }, 1100);
-        return;
-      } else {
-        playerHUD.style.display = "block";
-        hudTag.className = "piper-hud-tag kokoro";
-        hudTag.textContent = "⚡ Kokoro";
-        voiceDisplay.textContent = "Hindi Text Detected";
-        readingText.innerHTML = `ℹ️ <b>Hindi Text:</b> Kokoro-82M is an offline English studio model. Please connect your free Google Gemini API key in extension settings for natural Hindi voice.`;
-        playPauseBtn.textContent = "▶";
-        isPlaying = false;
-        return;
-      }
+    let effectiveVoiceId = activeVoiceId;
+    if (isHindiText && !effectiveVoiceId.startsWith("h")) {
+      effectiveVoiceId = "hf_alpha";
     }
 
     isGeminiAudioMode = false;
@@ -345,13 +327,13 @@
     hudTag.textContent = "⚡ Kokoro";
 
     const allVoices = [...KOKORO_VOICES_LIST, ...HINDI_VOICES, ...ENGLISH_VOICES];
-    const activeVoiceObj = allVoices.find(v => v.id === activeVoiceId) || KOKORO_VOICES_LIST[0];
-    voiceDisplay.textContent = `${activeVoiceObj.name} (${activeVoiceObj.gender || "Studio"})`;
+    const activeVoiceObj = allVoices.find(v => v.id === effectiveVoiceId) || KOKORO_VOICES_LIST[0];
+    voiceDisplay.textContent = `${activeVoiceObj.name} (${activeVoiceObj.gender || (isHindiText ? "Hindi" : "Studio")})`;
     playerHUD.style.display = "block";
     playPauseBtn.textContent = "⏸";
 
     highlightSelection(range);
-    fallbackToKokoro(text);
+    fallbackToKokoro(text, effectiveVoiceId);
   }
 
   async function startReadingWithGemini(text, range) {
@@ -471,7 +453,7 @@
     }
   }
 
-  function fallbackToKokoro(text) {
+  function fallbackToKokoro(text, voiceIdOverride) {
     isGeminiAudioMode = false;
     activeChunks = [];
     const rawSentences = text.match(/[^.!?।\n]+[.!?।\n]+|[^.!?।\n]+$/g) || [text];
@@ -489,9 +471,10 @@
 
     if (activeChunks.length === 0) return;
 
+    const useVoice = voiceIdOverride || activeVoiceId;
     const allVoices = [...KOKORO_VOICES_LIST, ...HINDI_VOICES, ...ENGLISH_VOICES];
-    const activeVoiceObj = allVoices.find(v => v.id === activeVoiceId);
-    const voiceDisplayName = activeVoiceObj ? `${activeVoiceObj.name} (${activeVoiceObj.gender})` : activeVoiceId;
+    const activeVoiceObj = allVoices.find(v => v.id === useVoice);
+    const voiceDisplayName = activeVoiceObj ? `${activeVoiceObj.name} (${activeVoiceObj.gender})` : useVoice;
     voiceDisplay.textContent = `⚡ Kokoro Neural: ${voiceDisplayName}`;
     playerHUD.style.display = "block";
     playPauseBtn.textContent = "⏸";
@@ -500,7 +483,7 @@
     chrome.runtime.sendMessage({
       type: "SYNTHESIZE_AND_PLAY",
       chunks: activeChunks,
-      voiceId: activeVoiceId,
+      voiceId: useVoice,
       speed: currentSpeed
     });
   }
