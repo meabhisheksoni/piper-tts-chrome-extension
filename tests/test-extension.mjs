@@ -202,13 +202,9 @@ async function run() {
   }
   console.log(`✅ TEST 2 PASSED: Hindi synthesized in ${hiResult.durationMs}ms! Text: "${hiResult.text}"`);
 
-  console.log("Closing standalone offscreen tab...");
-  await offscreenPage.close();
-  await new Promise(r => setTimeout(r, 1000));
-
   // TEST 3: Popup UI End-to-End Interaction
   console.log("\n5. [TEST 3] Testing Popup UI Interaction & Test Voice Button...");
-  const popupPage = await context.newPage();
+  const popupPage = offscreenPage;
   popupPage.on("console", (msg) => console.log(`[Popup Console]: ${msg.text()}`));
   popupPage.on("pageerror", (err) => console.error(`[Popup Error]:`, err));
 

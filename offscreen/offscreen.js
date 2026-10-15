@@ -63,20 +63,8 @@ async function getKokoroModel(onProgress) {
       }
     }
 
-    // Auto-detect WebGPU hardware acceleration
-    let device = "wasm";
-    if (typeof navigator !== "undefined" && navigator.gpu) {
-      try {
-        const adapter = await navigator.gpu.requestAdapter();
-        if (adapter) {
-          device = "webgpu";
-          console.log("[Kokoro TTS] WebGPU hardware acceleration active!");
-        }
-      } catch (e) {
-        console.warn("[Kokoro TTS] WebGPU probe error, falling back to WASM SIMD:", e);
-        device = "wasm";
-      }
-    }
+    // Use high-performance WASM SIMD execution (instant V8 compilation, zero WebGPU shader compilation stall)
+    const device = "wasm";
 
     broadcastEvent("KOKORO_STATUS", {
       status: "loading",
@@ -87,10 +75,10 @@ async function getKokoroModel(onProgress) {
     const localModelUrl = chrome.runtime.getURL("lib/kokoro/model");
 
     try {
-      console.log("[Kokoro TTS] Loading bundled original FP32 Kokoro-82M model (310MB) from:", localModelUrl);
+      console.log("[Kokoro TTS] Loading bundled original FP32 Kokoro-82M model (310MB) via WASM SIMD from:", localModelUrl);
       kokoroModelInstance = await KokoroTTS.from_pretrained(localModelUrl, {
         dtype: "fp32",
-        device
+        device: "wasm"
       });
       console.log("[Kokoro TTS] Bundled original FP32 model loaded successfully!");
     } catch (fp32Err) {
@@ -98,14 +86,14 @@ async function getKokoroModel(onProgress) {
       try {
         kokoroModelInstance = await KokoroTTS.from_pretrained(localModelUrl, {
           dtype: "q8",
-          device
+          device: "wasm"
         });
         console.log("[Kokoro TTS] Bundled Q8 model loaded successfully!");
       } catch (q8Err) {
         console.warn("[Kokoro TTS] Local bundle fallback to HuggingFace CDN:", q8Err);
         kokoroModelInstance = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
           dtype: "q8",
-          device,
+          device: "wasm",
           progress_callback: (p) => {
             if (p.status === "progress") {
               const pct = Math.round(p.progress || 0);
@@ -144,36 +132,10 @@ async function getKokoroModel(onProgress) {
 }
 
 /**
- * Primes the browser's Cache API with bundled voice files from extension package
- * so inference runs 100% offline with 0ms network latency.
- */
-async function primeLocalVoiceCache(voiceId) {
-  try {
-    const cache = await caches.open("kokoro-voices");
-    const hfUrl = `https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/voices/${voiceId}.bin`;
-    const match = await cache.match(hfUrl);
-    if (!match) {
-      const localUrl = chrome.runtime.getURL(`lib/kokoro/voices/${voiceId}.bin`);
-      const resp = await fetch(localUrl);
-      if (resp.ok) {
-        const buf = await resp.arrayBuffer();
-        await cache.put(hfUrl, new Response(buf, {
-          headers: { "Content-Type": "application/octet-stream" }
-        }));
-        console.log(`[Kokoro TTS] Primed voice ${voiceId} into offline cache.`);
-      }
-    }
-  } catch (err) {
-    console.warn(`[Kokoro TTS] Voice cache priming notice for ${voiceId}:`, err);
-  }
-}
-
-/**
  * Synthesizes a chunk of text into a Web Audio API AudioBuffer using Kokoro-82M.
  */
 async function synthesizeKokoroChunk(text, voiceId) {
   const model = await getKokoroModel();
-  await primeLocalVoiceCache(voiceId);
 
   // Fallback to af_heart if specified voice is not recognized
   const targetVoice = (model.voices && model.voices[voiceId]) ? voiceId : "af_heart";
@@ -447,6 +409,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       return true; // async
 
+    case "PING":
+      sendResponse({ pong: true, kokoroReady: !!kokoroModelInstance });
+      break;
+
     case "GET_PLAYER_STATUS":
       sendResponse({
         isPlaying,
@@ -461,3 +427,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   return true;
 });
+
+// Broadcast readiness so background service worker knows listener is attached
+chrome.runtime.sendMessage({ type: "OFFSCREEN_READY" }).catch(() => {});
+console.log("[Kokoro Offscreen] Message router registered and ready.");

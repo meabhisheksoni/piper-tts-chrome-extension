@@ -38,6 +38,28 @@ async function hasOffscreenDocument() {
 let creatingOffscreenPromise = null;
 let activePlaybackTabId = null;
 
+let isOffscreenReady = false;
+let offscreenReadyWaiters = [];
+
+function markOffscreenReady() {
+  isOffscreenReady = true;
+  while (offscreenReadyWaiters.length > 0) {
+    const fn = offscreenReadyWaiters.shift();
+    try { fn(); } catch {}
+  }
+}
+
+async function waitForOffscreenReady(timeoutMs = 5000) {
+  if (isOffscreenReady) return true;
+  return new Promise(resolve => {
+    const timer = setTimeout(() => resolve(false), timeoutMs);
+    offscreenReadyWaiters.push(() => {
+      clearTimeout(timer);
+      resolve(true);
+    });
+  });
+}
+
 /**
  * Creates the offscreen document if not already running.
  * Uses a singleton promise mutex to prevent concurrent creation collisions.
@@ -52,15 +74,17 @@ async function ensureOffscreenDocument() {
     return;
   }
 
+  isOffscreenReady = false;
   creatingOffscreenPromise = chrome.offscreen.createDocument({
     url: OFFSCREEN_DOCUMENT_PATH,
     reasons: ["AUDIO_PLAYBACK", "WORKERS"],
-    justification: "Run Piper ONNX neural TTS inference and stream Web Audio API playback"
+    justification: "Run Kokoro ONNX neural TTS inference and stream Web Audio API playback"
   }).finally(() => {
     creatingOffscreenPromise = null;
   });
 
   await creatingOffscreenPromise;
+  await waitForOffscreenReady();
 }
 
 // Relay messages
@@ -71,6 +95,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   (async () => {
     try {
+      if (message.type === "OFFSCREEN_READY") {
+        markOffscreenReady();
+        sendResponse({ acknowledged: true });
+        return;
+      }
+
       // Track the originating tab so events route reliably even if user switches tabs or SW sleeps
       if (message.type === "SYNTHESIZE_AND_PLAY" && sender.tab && sender.tab.id) {
         activePlaybackTabId = sender.tab.id;
@@ -94,10 +124,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       if (offscreenActionTypes.includes(message.type)) {
         await ensureOffscreenDocument();
-        // Forward message to offscreen document with self-suppression flag
-        chrome.runtime.sendMessage({ ...message, _fromSW: true }, (response) => {
-          sendResponse(response || { success: true });
-        });
+
+        // Forward message to offscreen document with self-suppression flag & retry
+        let delivered = false;
+        let lastErr = null;
+        for (let attempt = 0; attempt < 8 && !delivered; attempt++) {
+          try {
+            await new Promise((res, rej) => {
+              chrome.runtime.sendMessage({ ...message, _fromSW: true }, (response) => {
+                if (chrome.runtime.lastError) {
+                  rej(new Error(chrome.runtime.lastError.message));
+                } else {
+                  delivered = true;
+                  sendResponse(response || { success: true });
+                  res();
+                }
+              });
+            });
+          } catch (err) {
+            lastErr = err;
+            await new Promise(r => setTimeout(r, 120));
+          }
+        }
+
+        if (!delivered) {
+          console.error("[Piper SW] Failed to route message to offscreen after retries:", lastErr);
+          sendResponse({ success: false, error: lastErr?.message || "Offscreen delivery timeout" });
+        }
         return;
       }
 

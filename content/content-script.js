@@ -476,6 +476,9 @@
     const activeVoiceObj = allVoices.find(v => v.id === useVoice);
     const voiceDisplayName = activeVoiceObj ? `${activeVoiceObj.name} (${activeVoiceObj.gender})` : useVoice;
     voiceDisplay.textContent = `⚡ Kokoro Neural: ${voiceDisplayName}`;
+    readingText.textContent = `⚡ Initializing offline speech (${voiceDisplayName})...`;
+    progressFill.style.width = "10%";
+    progressText.textContent = `1 / ${activeChunks.length}`;
     playerHUD.style.display = "block";
     playPauseBtn.textContent = "⏸";
     isPlaying = true;

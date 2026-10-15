@@ -36,11 +36,11 @@ jobs:
       - name: 🚀 Run Automated Headless Extension Test Suite
         run: xvfb-run --auto-servernum npm test
 
-      - name: 📦 Package Release Zip (v1.2.4)
+      - name: 📦 Package Release Zip (v1.2.5)
         if: success()
         run: |
           mkdir -p dist
-          zip -r dist/piper-kokoro-tts-extension-v1.2.4.zip \
+          zip -r dist/piper-kokoro-tts-extension-v1.2.5.zip \
             manifest.json \
             README.md \
             background \
@@ -55,6 +55,6 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: piper-kokoro-tts-extension-v1.2.4
-          path: dist/piper-kokoro-tts-extension-v1.2.4.zip
+          name: piper-kokoro-tts-extension-v1.2.5
+          path: dist/piper-kokoro-tts-extension-v1.2.5.zip
           retention-days: 14
