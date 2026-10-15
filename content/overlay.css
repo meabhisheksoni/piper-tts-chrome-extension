@@ -33,6 +33,62 @@
   box-shadow: 0 14px 28px -5px rgba(0, 0, 0, 0.4);
 }
 
+/* Obsidian Pill Action Buttons */
+.piper-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.piper-pill-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.piper-pill-text {
+  line-height: 1;
+}
+
+.piper-btn-kokoro {
+  color: #34d399;
+}
+.piper-btn-kokoro:hover {
+  background: rgba(52, 211, 153, 0.16);
+  color: #6ee7b7;
+}
+
+.piper-btn-gemini {
+  color: #38bdf8;
+}
+.piper-btn-gemini:hover {
+  background: rgba(56, 189, 248, 0.16);
+  color: #7dd3fc;
+}
+
+.piper-btn-summarize {
+  color: #c084fc;
+}
+.piper-btn-summarize:hover {
+  background: rgba(192, 132, 252, 0.16);
+  color: #d8b4fe;
+}
+
+.piper-btn-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 1px;
+}
+
 .piper-speak-btn {
   display: flex;
   align-items: center;
@@ -43,30 +99,33 @@
 }
 
 .piper-lang-badge {
-  background: #334155;
-  color: #f1f5f9;
-  font-size: 11px;
+  background: #1e2430;
+  color: #94a3b8;
+  font-size: 10px;
   font-weight: 700;
-  padding: 2px 7px;
+  padding: 2px 6px;
   border-radius: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .piper-lang-badge.hindi {
-  background: #c2410c;
-  color: #ffedd5;
+  background: rgba(194, 65, 12, 0.25);
+  color: #fdba74;
+  border-color: rgba(251, 146, 60, 0.3);
 }
 
 .piper-lang-badge.english {
-  background: #1d4ed8;
-  color: #eff6ff;
+  background: rgba(30, 64, 175, 0.25);
+  color: #93c5fd;
+  border-color: rgba(96, 165, 250, 0.3);
 }
 
 .piper-lang-badge.gemini {
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  color: #ffffff;
-  box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+  background: rgba(168, 85, 247, 0.2);
+  color: #d8b4fe;
+  border-color: rgba(192, 132, 252, 0.3);
 }
 
 /* Floating Player HUD */
@@ -104,10 +163,53 @@
   letter-spacing: 0.5px;
 }
 
+.piper-hud-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.piper-hud-tag.kokoro {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.piper-hud-tag.gemini {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
 .piper-hud-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.piper-switch-voice-btn {
+  background: #1e2430;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.piper-switch-voice-btn:hover {
+  background: #2a3344;
+  color: #ffffff;
+  border-color: #38bdf8;
+  transform: translateY(-1px);
 }
 
 .piper-icon-btn {

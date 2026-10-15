@@ -7,157 +7,154 @@
 </head>
 <body>
   <div class="popup-container">
-    <!-- Header -->
+    <!-- Header with Minimalist Tab Navigation -->
     <header class="popup-header">
       <div class="logo-row">
         <span class="logo-icon">🔊</span>
         <div>
           <h1 class="logo-title">Piper Neural TTS</h1>
-          <p class="logo-subtitle">Offline & Private Speech Engine</p>
+          <span class="version-badge">v1.2.2</span>
         </div>
       </div>
-      <span class="badge">v1.2.1</span>
+      <div class="header-nav">
+        <button type="button" id="nav-action-btn" class="nav-btn active" title="Quick Action">⚡ Action</button>
+        <button type="button" id="nav-settings-btn" class="nav-btn" title="Configuration">⚙️ Settings</button>
+      </div>
     </header>
 
-    <!-- Engine Mode Selection -->
-    <section class="section">
-      <label class="section-label">Primary Speech Engine</label>
-      <select id="speech-engine-select" class="select-input">
-        <option value="gemini">✨ Google Gemini 3.8 AI (Studio Human Voice • &lt;800ms Stream)</option>
-        <option value="local">⚡ Kokoro-82M Neural Engine (100% Offline • Studio Voice)</option>
-      </select>
-    </section>
-
-    <!-- Kokoro-82M Offline Voice Section -->
-    <section class="section kokoro-card" id="kokoro-card" style="border: 1px solid #10b981; border-radius: 8px; padding: 10px; background: rgba(16, 185, 129, 0.06);">
-      <div class="row-between">
-        <label class="section-label" style="color: #34d399;">⚡ Kokoro-82M Offline Studio Engine</label>
-        <span class="badge" id="kokoro-status-badge" style="background:#065f46; color:#a7f3d0;">100% Offline</span>
+    <!-- VIEW 1: MINIMALIST ACTION VIEW (Default, Compact & Big Fonts) -->
+    <main id="view-action" class="view-panel active">
+      <!-- Engine Toggle: Segmented Pill -->
+      <div class="engine-toggle-group">
+        <button type="button" class="engine-toggle-btn active" id="btn-engine-kokoro" data-engine="local">
+          <span class="toggle-icon">⚡</span>
+          <div class="toggle-text-block">
+            <span class="toggle-label">Kokoro</span>
+            <span class="toggle-sub">100% Offline</span>
+          </div>
+        </button>
+        <button type="button" class="engine-toggle-btn" id="btn-engine-gemini" data-engine="gemini">
+          <span class="toggle-icon">✨</span>
+          <div class="toggle-text-block">
+            <span class="toggle-label">Gemini AI</span>
+            <span class="toggle-sub">Human Voice</span>
+          </div>
+        </button>
       </div>
-      <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 8px 0; line-height: 1.4;">
-        Runs 100% inside your browser via WebGPU/WASM. Zero API key, zero external software, studio-grade 24kHz audio.
-      </p>
 
-      <label class="section-label" style="margin-top: 6px;">English Voice Persona (Studio Quality)</label>
-      <select id="kokoro-voice-select" class="select-input">
-        <option value="af_heart">Heart (Female • Warm Conversational • Global #1)</option>
-        <option value="af_bella">Bella (Female • Expressive &amp; Bright • Grade A-)</option>
-        <option value="af_nicole">Nicole (Female • Audiobook Narrator • Grade B-)</option>
-        <option value="am_adam">Adam (Male • Deep Warm Conversational)</option>
-        <option value="am_michael">Michael (Male • Clear Narrator • Grade C+)</option>
-        <option value="am_puck">Puck (Male • Friendly Casual)</option>
-        <option value="bf_emma">Emma (British Female • Crisp &amp; Polished)</option>
-        <option value="bm_george">George (British Male • BBC News Style)</option>
-      </select>
-
-      <label class="section-label" style="margin-top: 8px;">Hindi Voice Persona (Natural)</label>
-      <select id="kokoro-hindi-voice-select" class="select-input">
-        <option value="hf_alpha">Alpha (Hindi Female • Clear Natural)</option>
-        <option value="hm_omega">Omega (Hindi Male • Deep Natural)</option>
-      </select>
-    </section>
-
-    <!-- Gemini AI Human Voice & Summarizer Configuration -->
-    <section class="section gemini-card" id="gemini-card">
-      <div class="row-between">
-        <label class="section-label" style="color: #38bdf8;">✨ Google Gemini AI (Human Voice)</label>
-        <span class="badge" id="gemini-status-badge" style="background:#065f46; color:#a7f3d0;">Free Tier Ready</span>
-      </div>
-      <div class="input-group" style="margin-top: 6px;">
-        <input type="password" id="gemini-api-key" class="select-input" placeholder="Paste Google AI Studio API Key...">
-        <div class="row-between" style="margin-top: 4px;">
-          <a href="https://aistudio.google.com/app/apikey" target="_blank" class="free-key-link" style="color:#38bdf8; font-size:11px; text-decoration:none;">Get 100% Free API Key ↗</a>
-          <button id="toggle-key-visibility" class="mini-btn" style="background:none; border:none; color:#94a3b8; font-size:11px; cursor:pointer;">Show</button>
+      <!-- Dynamic Voice Persona Selector -->
+      <div class="action-field">
+        <div class="row-between">
+          <label class="field-label" id="voice-field-label">Active Voice Persona</label>
+          <span class="voice-badge" id="voice-badge">Offline Studio</span>
         </div>
-      </div>
-
-      <div style="margin-top: 10px;">
-        <label class="section-label">AI Model</label>
-        <select id="gemini-model-select" class="select-input">
-          <option value="gemini-2.5-flash-preview-tts">gemini-2.5-flash-preview-tts (Dedicated Studio Audio)</option>
-          <option value="gemini-2.0-flash">gemini-2.0-flash (Multimodal Fast Audio)</option>
-          <option value="gemini-3.8-flash">gemini-3.8-flash (Latest AI Generation)</option>
+        <!-- Kokoro Voices Dropdown -->
+        <select id="kokoro-voice-select" class="big-select">
+          <optgroup label="English Voices (Studio)">
+            <option value="af_heart" selected>Heart (Female • Conversational #1)</option>
+            <option value="af_bella">Bella (Female • Bright & Expressive)</option>
+            <option value="af_nicole">Nicole (Female • Audiobook Narrator)</option>
+            <option value="am_adam">Adam (Male • Deep Conversational)</option>
+            <option value="am_michael">Michael (Male • Clear Narrator)</option>
+            <option value="am_puck">Puck (Male • Friendly Casual)</option>
+            <option value="bf_emma">Emma (British Female • Crisp)</option>
+            <option value="bm_george">George (British Male • BBC Style)</option>
+          </optgroup>
+          <optgroup label="Hindi Voices (Natural)">
+            <option value="hf_alpha">Alpha (Hindi Female • Natural)</option>
+            <option value="hm_omega">Omega (Hindi Male • Deep Natural)</option>
+          </optgroup>
         </select>
-      </div>
-
-      <div style="margin-top: 10px;">
-        <label class="section-label">AI Voice Persona</label>
-        <select id="gemini-voice-select" class="select-input">
-          <option value="Puck">Puck (Male • Conversational, Natural Pauses)</option>
-          <option value="Kore">Kore (Female • Empathetic, Calm Interviewer)</option>
+        <!-- Gemini Voices Dropdown -->
+        <select id="gemini-voice-select" class="big-select" style="display:none;">
+          <option value="Puck" selected>Puck (Male • Conversational, Natural Pauses)</option>
+          <option value="Kore">Kore (Female • Empathetic, Calm)</option>
           <option value="Fenrir">Fenrir (Male • Deep, Authoritative)</option>
           <option value="Aoede">Aoede (Female • Dynamic, Expressive)</option>
           <option value="Charon">Charon (Male • Steady, Professional)</option>
         </select>
       </div>
-    </section>
 
-    <!-- Language & Auto-Detection -->
-    <section class="section">
-      <label class="section-label">Language Detection Mode</label>
-      <select id="language-mode" class="select-input">
-        <option value="auto">🌐 Auto-Detect (Hindi & English)</option>
-        <option value="hi">🇮🇳 Force Hindi (हिन्दी)</option>
-        <option value="en">🇺🇸 Force English (US)</option>
-      </select>
-    </section>
-
-    <!-- Preferred Voices -->
-    <section class="section">
-      <label class="section-label">Hindi Voice Persona</label>
-      <select id="hindi-voice-select" class="select-input">
-        <option value="hi_IN-pratham-medium">Pratham (Male, Natural - 38MB)</option>
-        <option value="hi_IN-priyamvada-medium">Priyamvada (Female, Clear - 38MB)</option>
-        <option value="hi_IN-rohan-medium">Rohan (Male, Deep - 38MB)</option>
-      </select>
-
-      <label class="section-label" style="margin-top: 10px;">English Voice Persona</label>
-      <select id="english-voice-select" class="select-input">
-        <option value="en_US-lessac-low">Lessac (Female, Fast - 16MB)</option>
-        <option value="en_US-lessac-medium">Lessac (Female, Natural - 38MB)</option>
-        <option value="en_US-amy-low">Amy (Female, Fast - 16MB)</option>
-        <option value="en_US-amy-medium">Amy (Female, Natural - 38MB)</option>
-        <option value="en_US-danny-low">Danny (Male, Fast - 16MB)</option>
-      </select>
-    </section>
-
-    <!-- Speed & Hover Settings -->
-    <section class="section">
-      <div class="row-between">
-        <label class="section-label">Default Reading Speed</label>
-        <span id="speed-label" class="val-label">1.0x</span>
+      <!-- Speed Scrubber with Large Readout -->
+      <div class="action-field">
+        <div class="row-between">
+          <label class="field-label">Reading Speed</label>
+          <span id="speed-label" class="big-speed-val">1.0x</span>
+        </div>
+        <input type="range" id="default-speed" min="0.5" max="2.5" step="0.1" value="1.0" class="big-slider">
       </div>
-      <input type="range" id="default-speed" min="0.5" max="2.5" step="0.1" value="1.0" class="slider">
 
-      <div class="row-between" style="margin-top: 12px;">
-        <label class="section-label">Hover-to-Seek (Paragraph Jump)</label>
-        <input type="checkbox" id="hover-seek-toggle" checked>
+      <!-- Tactile Play Test Button -->
+      <div class="action-footer">
+        <button type="button" id="test-voice-btn" class="big-action-btn">
+          <span class="btn-icon">▶</span>
+          <span class="btn-text">Test Voice Sample</span>
+        </button>
       </div>
-    </section>
+    </main>
 
-    <!-- Test Audio Button -->
-    <section class="section">
-      <button id="test-voice-btn" class="primary-btn">
-        <span>▶</span>
-        <span>Test Active Voice Sample</span>
-      </button>
-    </section>
-
-    <!-- Cached Models in IndexedDB -->
-    <section class="section">
-      <div class="row-between">
-        <label class="section-label">Cached Neural Models</label>
-        <span id="storage-usage" class="val-label">0.0 MB</span>
+    <!-- VIEW 2: SETTINGS DRAWER (Clean, Minimalist & Focused) -->
+    <main id="view-settings" class="view-panel" style="display:none;">
+      <!-- Google Gemini API Key Section -->
+      <div class="settings-card">
+        <div class="row-between">
+          <label class="settings-label">✨ Gemini API Key</label>
+          <span class="badge" id="gemini-status-badge">Key Needed</span>
+        </div>
+        <div class="input-with-action">
+          <input type="password" id="gemini-api-key" class="settings-input" placeholder="Paste Google AI Studio API Key...">
+          <button type="button" id="toggle-key-visibility" class="ghost-btn">Show</button>
+        </div>
+        <div class="key-hint-row">
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" class="free-key-link">Get 100% Free API Key ↗</a>
+        </div>
       </div>
-      <div id="models-list" class="models-list">
-        <div class="empty-state">Checking offline models...</div>
-      </div>
-    </section>
 
-    <!-- Footer -->
-    <footer class="popup-footer">
-      <span>100% Client-Side • Powered by Google Gemini 3.8 AI &amp; Kokoro-82M ONNX</span>
-    </footer>
+      <!-- AI Model Selection -->
+      <div class="settings-group">
+        <label class="settings-label">Gemini AI Model</label>
+        <select id="gemini-model-select" class="settings-input">
+          <option value="gemini-2.5-flash-preview-tts">gemini-2.5-flash-preview-tts (Studio Audio)</option>
+          <option value="gemini-2.0-flash">gemini-2.0-flash (Fast Audio)</option>
+          <option value="gemini-3.8-flash">gemini-3.8-flash (Latest Generation)</option>
+        </select>
+      </div>
+
+      <!-- Language Detection -->
+      <div class="settings-group">
+        <label class="settings-label">Language Detection Mode</label>
+        <select id="language-mode" class="settings-input">
+          <option value="auto">🌐 Auto-Detect (Hindi & English)</option>
+          <option value="hi">🇮🇳 Force Hindi (हिन्दी)</option>
+          <option value="en">🇺🇸 Force English (US)</option>
+        </select>
+      </div>
+
+      <!-- Hover-to-Seek Toggle -->
+      <div class="settings-row">
+        <div>
+          <div class="settings-title">Hover-to-Seek</div>
+          <div class="settings-subtitle">Jump directly to hovered sentence</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="hover-seek-toggle" checked>
+          <span class="slider-round"></span>
+        </label>
+      </div>
+
+      <!-- Storage & Model Status -->
+      <div class="settings-group">
+        <div class="row-between">
+          <label class="settings-label">Offline Neural Cache</label>
+          <span id="storage-usage" class="badge-neutral">Ready</span>
+        </div>
+        <div id="models-list" class="models-list"></div>
+      </div>
+
+      <div class="settings-footer">
+        <button type="button" id="btn-back-to-actions" class="secondary-btn">← Back to Actions</button>
+      </div>
+    </main>
   </div>
 
   <script src="../lib/voices-data.js"></script>

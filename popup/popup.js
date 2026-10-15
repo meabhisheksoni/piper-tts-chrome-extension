@@ -1,103 +1,128 @@
-// Popup Settings & Model Management Script
+// Popup UI Script - Minimalist Action View + Settings Drawer
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const languageModeSelect = document.getElementById("language-mode");
+  // Navigation elements
+  const navActionBtn = document.getElementById("nav-action-btn");
+  const navSettingsBtn = document.getElementById("nav-settings-btn");
+  const viewAction = document.getElementById("view-action");
+  const viewSettings = document.getElementById("view-settings");
+  const btnBackToActions = document.getElementById("btn-back-to-actions");
+
+  // Engine toggle buttons
+  const btnEngineKokoro = document.getElementById("btn-engine-kokoro");
+  const btnEngineGemini = document.getElementById("btn-engine-gemini");
+
+  // Voice selectors & Badges
+  const kokoroVoiceSelect = document.getElementById("kokoro-voice-select");
+  const geminiVoiceSelect = document.getElementById("gemini-voice-select");
+  const voiceBadge = document.getElementById("voice-badge");
+
+  // Speed controls
   const defaultSpeedSlider = document.getElementById("default-speed");
   const speedLabel = document.getElementById("speed-label");
-  const hoverSeekToggle = document.getElementById("hover-seek-toggle");
+
+  // Test button
   const testVoiceBtn = document.getElementById("test-voice-btn");
-  const modelsListContainer = document.getElementById("models-list");
-  const storageUsageLabel = document.getElementById("storage-usage");
 
-  // Kokoro Controls
-  const kokoroCard = document.getElementById("kokoro-card");
-  const kokoroVoiceSelect = document.getElementById("kokoro-voice-select");
-  const kokoroHindiVoiceSelect = document.getElementById("kokoro-hindi-voice-select");
-  const kokoroStatusBadge = document.getElementById("kokoro-status-badge");
-
-  // Gemini AI Controls
-  const geminiCard = document.getElementById("gemini-card");
+  // Settings view elements
   const geminiApiKeyInput = document.getElementById("gemini-api-key");
   const toggleKeyVisibilityBtn = document.getElementById("toggle-key-visibility");
   const geminiModelSelect = document.getElementById("gemini-model-select");
-  const geminiVoiceSelect = document.getElementById("gemini-voice-select");
   const geminiStatusBadge = document.getElementById("gemini-status-badge");
+  const languageModeSelect = document.getElementById("language-mode");
+  const hoverSeekToggle = document.getElementById("hover-seek-toggle");
+  const storageUsageLabel = document.getElementById("storage-usage");
+  const modelsListContainer = document.getElementById("models-list");
 
-  // Engine Mode Control
-  const speechEngineSelect = document.getElementById("speech-engine-select");
+  // 1. Tab Switching Logic
+  function showActionView() {
+    viewAction.style.display = "flex";
+    viewSettings.style.display = "none";
+    navActionBtn.classList.add("active");
+    navSettingsBtn.classList.remove("active");
+  }
 
-  // Load existing settings
+  function showSettingsView() {
+    viewAction.style.display = "none";
+    viewSettings.style.display = "block";
+    navActionBtn.classList.remove("active");
+    navSettingsBtn.classList.add("active");
+  }
+
+  navActionBtn.addEventListener("click", showActionView);
+  navSettingsBtn.addEventListener("click", showSettingsView);
+  if (btnBackToActions) {
+    btnBackToActions.addEventListener("click", showActionView);
+  }
+
+  // 2. Load Stored Settings
   const settings = await getSettings();
+  let currentEngine = settings.speechEngine || "local"; // Default to fast local Kokoro or user preference
 
-  if (settings.speechEngine && speechEngineSelect) {
-    speechEngineSelect.value = settings.speechEngine;
-    updateEngineCardVisuals(settings.speechEngine);
-  }
-
-  if (speechEngineSelect) {
-    speechEngineSelect.addEventListener("change", () => {
-      const mode = speechEngineSelect.value;
-      updateSettings({ speechEngine: mode });
-      updateEngineCardVisuals(mode);
-    });
-  }
-
-  function updateEngineCardVisuals(engine) {
+  function setEngineUI(engine) {
+    currentEngine = engine;
     if (engine === "gemini") {
-      if (geminiCard) {
-        geminiCard.style.borderColor = "#38bdf8";
-        geminiCard.style.boxShadow = "0 0 10px rgba(56, 189, 248, 0.25)";
-        geminiCard.style.opacity = "1";
-      }
-      if (kokoroCard) {
-        kokoroCard.style.borderColor = "#334155";
-        kokoroCard.style.boxShadow = "none";
-        kokoroCard.style.opacity = "0.75";
-      }
+      btnEngineGemini.classList.add("active");
+      btnEngineKokoro.classList.remove("active");
+      geminiVoiceSelect.style.display = "block";
+      kokoroVoiceSelect.style.display = "none";
+      voiceBadge.textContent = "Studio AI";
+      voiceBadge.style.color = "#38bdf8";
+      testVoiceBtn.style.background = "#38bdf8";
+      testVoiceBtn.innerHTML = `<span>▶</span><span>Test Gemini AI Voice</span>`;
     } else {
-      if (kokoroCard) {
-        kokoroCard.style.borderColor = "#10b981";
-        kokoroCard.style.boxShadow = "0 0 10px rgba(16, 185, 129, 0.25)";
-        kokoroCard.style.opacity = "1";
-      }
-      if (geminiCard) {
-        geminiCard.style.borderColor = "#334155";
-        geminiCard.style.boxShadow = "none";
-        geminiCard.style.opacity = "0.75";
-      }
+      btnEngineKokoro.classList.add("active");
+      btnEngineGemini.classList.remove("active");
+      kokoroVoiceSelect.style.display = "block";
+      geminiVoiceSelect.style.display = "none";
+      voiceBadge.textContent = "100% Offline";
+      voiceBadge.style.color = "#34d399";
+      testVoiceBtn.style.background = "#10b981";
+      testVoiceBtn.innerHTML = `<span>▶</span><span>Test Kokoro Studio Voice</span>`;
     }
   }
 
-  // Load Kokoro Settings
+  setEngineUI(currentEngine);
+
+  btnEngineKokoro.addEventListener("click", () => {
+    setEngineUI("local");
+    updateSettings({ speechEngine: "local" });
+  });
+
+  btnEngineGemini.addEventListener("click", () => {
+    setEngineUI("gemini");
+    updateSettings({ speechEngine: "gemini" });
+  });
+
+  // Voice Selections
   if (settings.kokoroVoice && kokoroVoiceSelect) {
     kokoroVoiceSelect.value = settings.kokoroVoice;
   }
-  if (settings.kokoroHindiVoice && kokoroHindiVoiceSelect) {
-    kokoroHindiVoiceSelect.value = settings.kokoroHindiVoice;
+  if (settings.geminiVoice && geminiVoiceSelect) {
+    geminiVoiceSelect.value = settings.geminiVoice;
   }
 
-  if (kokoroVoiceSelect) {
-    kokoroVoiceSelect.addEventListener("change", () => {
-      updateSettings({ kokoroVoice: kokoroVoiceSelect.value });
-    });
-  }
+  kokoroVoiceSelect.addEventListener("change", () => {
+    updateSettings({ kokoroVoice: kokoroVoiceSelect.value });
+  });
 
-  if (kokoroHindiVoiceSelect) {
-    kokoroHindiVoiceSelect.addEventListener("change", () => {
-      updateSettings({ kokoroHindiVoice: kokoroHindiVoiceSelect.value });
-    });
-  }
+  geminiVoiceSelect.addEventListener("change", () => {
+    updateSettings({ geminiVoice: geminiVoiceSelect.value });
+  });
 
-  if (settings.preferredLanguage) languageModeSelect.value = settings.preferredLanguage;
+  // Speed
   if (settings.defaultSpeed) {
     defaultSpeedSlider.value = settings.defaultSpeed;
     speedLabel.textContent = `${parseFloat(settings.defaultSpeed).toFixed(1)}x`;
   }
-  if (typeof settings.hoverToSeekEnabled === "boolean") {
-    hoverSeekToggle.checked = settings.hoverToSeekEnabled;
-  }
 
-  // Load Gemini settings
+  defaultSpeedSlider.addEventListener("input", () => {
+    const speed = parseFloat(defaultSpeedSlider.value);
+    speedLabel.textContent = `${speed.toFixed(1)}x`;
+    updateSettings({ defaultSpeed: speed });
+  });
+
+  // Settings View: Gemini API Key & Model
   if (settings.geminiApiKey) {
     geminiApiKeyInput.value = settings.geminiApiKey;
     updateGeminiStatusBadge(true);
@@ -105,11 +130,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateGeminiStatusBadge(false);
   }
 
-  const activeModel = settings.geminiModel || "gemini-2.5-flash-preview-tts";
-  geminiModelSelect.value = activeModel;
-  if (settings.geminiVoice) geminiVoiceSelect.value = settings.geminiVoice;
-
-  // Persist Gemini settings changes
   geminiApiKeyInput.addEventListener("input", () => {
     const key = geminiApiKeyInput.value.trim();
     updateSettings({ geminiApiKey: key });
@@ -126,84 +146,78 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  const activeModel = settings.geminiModel || "gemini-2.5-flash-preview-tts";
+  geminiModelSelect.value = activeModel;
   geminiModelSelect.addEventListener("change", () => {
     updateSettings({ geminiModel: geminiModelSelect.value });
   });
 
-  geminiVoiceSelect.addEventListener("change", () => {
-    updateSettings({ geminiVoice: geminiVoiceSelect.value });
-  });
-
   function updateGeminiStatusBadge(hasKey) {
     if (hasKey) {
-      geminiStatusBadge.textContent = "✅ AI Connected";
+      geminiStatusBadge.textContent = "✅ Connected";
       geminiStatusBadge.style.background = "#065f46";
       geminiStatusBadge.style.color = "#a7f3d0";
     } else {
-      geminiStatusBadge.textContent = "🔑 Key Needed";
+      geminiStatusBadge.textContent = "Key Needed";
       geminiStatusBadge.style.background = "#854d0e";
       geminiStatusBadge.style.color = "#fef08a";
     }
   }
 
-  // Persist general settings changes
+  // Language & Hover Seek
+  if (settings.preferredLanguage) languageModeSelect.value = settings.preferredLanguage;
   languageModeSelect.addEventListener("change", () => {
     updateSettings({ preferredLanguage: languageModeSelect.value });
   });
 
-  defaultSpeedSlider.addEventListener("input", () => {
-    const speed = parseFloat(defaultSpeedSlider.value);
-    speedLabel.textContent = `${speed.toFixed(1)}x`;
-    updateSettings({ defaultSpeed: speed });
-  });
-
+  if (typeof settings.hoverToSeekEnabled === "boolean") {
+    hoverSeekToggle.checked = settings.hoverToSeekEnabled;
+  }
   hoverSeekToggle.addEventListener("change", () => {
     updateSettings({ hoverToSeekEnabled: hoverSeekToggle.checked });
   });
 
-  // Test Voice Sample (Supports Gemini 3.8 Human Voice OR Kokoro-82M Offline Voice)
+  // 3. Audio Test Functionality (Kokoro Studio vs Gemini AI)
   let activeTestAudio = null;
 
   function resetTestBtn() {
-    testVoiceBtn.innerHTML = `<span>▶</span><span>Test Active Voice Sample</span>`;
-    testVoiceBtn.style.background = "#38bdf8";
+    setEngineUI(currentEngine);
   }
 
-  // Listen for playback events from background/offscreen
+  // Chrome runtime listener for Kokoro playback events
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === "CHUNK_STARTED") {
-      testVoiceBtn.innerHTML = `<span>🔊</span><span>Playing Kokoro Studio Voice...</span>`;
-      testVoiceBtn.style.background = "#10b981";
+      testVoiceBtn.innerHTML = `<span>🔊</span><span>Playing Kokoro Studio Audio...</span>`;
     } else if (msg.type === "PLAYBACK_FINISHED") {
       resetTestBtn();
     } else if (msg.type === "PLAYBACK_ERROR") {
-      testVoiceBtn.innerHTML = `<span>❌</span><span>${(msg.error || "Synthesis Error").substring(0, 40)}</span>`;
+      testVoiceBtn.innerHTML = `<span>❌</span><span>${(msg.error || "Synthesis Error").substring(0, 36)}</span>`;
       testVoiceBtn.style.background = "#ef4444";
       setTimeout(resetTestBtn, 4500);
     }
   });
 
   testVoiceBtn.addEventListener("click", async () => {
-    const currentSettings = await getSettings();
-    const currentEngine = currentSettings.speechEngine || "gemini";
-    const isHindi = currentSettings.preferredLanguage === "hi";
+    const cur = await getSettings();
+    const isHindi = cur.preferredLanguage === "hi";
 
     if (activeTestAudio) {
       activeTestAudio.pause();
       activeTestAudio = null;
     }
 
-    // 1. Google Gemini AI Engine
+    // A. Gemini Cloud Human Voice
     if (currentEngine === "gemini") {
-      if (!currentSettings.geminiApiKey) {
-        testVoiceBtn.innerHTML = `<span>🔑</span><span>Paste Gemini API Key Above</span>`;
+      if (!cur.geminiApiKey) {
+        testVoiceBtn.innerHTML = `<span>🔑</span><span>Paste API Key in Settings</span>`;
         testVoiceBtn.style.background = "#d97706";
+        showSettingsView();
         geminiApiKeyInput.focus();
         setTimeout(resetTestBtn, 3500);
         return;
       }
 
-      testVoiceBtn.innerHTML = `<span>✨</span><span>Connecting to Gemini AI (${currentSettings.geminiVoice || "Puck"})...</span>`;
+      testVoiceBtn.innerHTML = `<span>✨</span><span>Connecting to Gemini AI (${cur.geminiVoice || "Puck"})...</span>`;
       testVoiceBtn.style.background = "#6366f1";
 
       const sampleText = isHindi
@@ -213,12 +227,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         const { audioBlobUrl, modelUsed } = await generateGeminiAudio(
           sampleText,
-          currentSettings.geminiApiKey,
-          currentSettings.geminiVoice || "Puck",
-          currentSettings.geminiModel || "gemini-2.5-flash-preview-tts"
+          cur.geminiApiKey,
+          cur.geminiVoice || "Puck",
+          cur.geminiModel || "gemini-2.5-flash-preview-tts"
         );
 
-        testVoiceBtn.innerHTML = `<span>🔊</span><span>Playing Gemini Human Audio (${modelUsed || "AI"})...</span>`;
+        testVoiceBtn.innerHTML = `<span>🔊</span><span>Playing Gemini Human Audio...</span>`;
         testVoiceBtn.style.background = "#10b981";
 
         const audio = new Audio(audioBlobUrl);
@@ -234,19 +248,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       } catch (err) {
         console.error("[Gemini Audio Test Failed]", err);
-        testVoiceBtn.innerHTML = `<span>❌</span><span>${err.message.substring(0, 48)}</span>`;
+        testVoiceBtn.innerHTML = `<span>❌</span><span>${err.message.substring(0, 40)}</span>`;
         testVoiceBtn.style.background = "#ef4444";
         setTimeout(resetTestBtn, 4500);
-        return; // Fail fast and inform user - do NOT fall through to robotic speech!
+        return;
       }
     }
 
-    // 2. Kokoro-82M Local Neural Engine
-    const kokoroVoice = isHindi
-      ? (currentSettings.kokoroHindiVoice || "hf_alpha")
-      : (currentSettings.kokoroVoice || "af_heart");
+    // B. Kokoro-82M Local Studio Voice (100% Offline)
+    const selectedKokoroVoice = kokoroVoiceSelect.value || "af_heart";
 
-    testVoiceBtn.innerHTML = `<span>⚡</span><span>Synthesizing Kokoro Neural (${kokoroVoice})...</span>`;
+    testVoiceBtn.innerHTML = `<span>⚡</span><span>Synthesizing Studio Audio...</span>`;
     testVoiceBtn.style.background = "#10b981";
 
     const sampleText = isHindi
@@ -256,60 +268,39 @@ document.addEventListener("DOMContentLoaded", async () => {
     chrome.runtime.sendMessage({
       type: "SYNTHESIZE_AND_PLAY",
       chunks: [{ id: 0, text: sampleText, paragraphIndex: 0 }],
-      voiceId: kokoroVoice,
+      voiceId: selectedKokoroVoice,
       speed: parseFloat(defaultSpeedSlider.value) || 1.0
     });
   });
 
-  // Load Cached Models Status
+  // 4. Cached Models Status in Settings
   async function refreshCachedModels() {
     try {
       const cached = await listCachedModels();
-      let totalMB = 0;
       modelsListContainer.innerHTML = "";
 
-      // Kokoro-82M Status Entry
       const kokoroRow = document.createElement("div");
       kokoroRow.className = "model-item";
       kokoroRow.innerHTML = `
-        <div>
-          <span class="model-name" style="color:#34d399; font-weight:600;">Kokoro-82M Studio Engine</span>
-          <span class="model-size">(Original 310 MB FP32 • 100% In-Browser)</span>
-        </div>
-        <span class="badge" style="background:#065f46; color:#a7f3d0; font-size:10px;">Master FP32</span>
+        <span style="color:#34d399; font-weight:600;">Kokoro-82M Studio Model</span>
+        <span style="color:#8b949e;">310 MB FP32</span>
       `;
       modelsListContainer.appendChild(kokoroRow);
 
       if (cached && cached.length > 0) {
         cached.forEach((item) => {
-          totalMB += parseFloat(item.sizeMB);
-          const voiceInfo = (typeof PIPER_VOICES !== "undefined" && PIPER_VOICES[item.voiceId]) || { name: item.voiceId };
-
           const row = document.createElement("div");
           row.className = "model-item";
           row.innerHTML = `
-            <div>
-              <span class="model-name">${voiceInfo.name || item.voiceId}</span>
-              <span class="model-size">(${item.sizeMB} MB)</span>
-            </div>
-            <button class="delete-btn" data-id="${item.voiceId}">Delete</button>
+            <span>${item.voiceId}</span>
+            <span style="color:#8b949e;">${item.sizeMB} MB</span>
           `;
           modelsListContainer.appendChild(row);
         });
-
-        // Attach delete handlers
-        modelsListContainer.querySelectorAll(".delete-btn").forEach((btn) => {
-          btn.addEventListener("click", async (e) => {
-            const id = e.target.getAttribute("data-id");
-            await deleteModelFromDB(id);
-            refreshCachedModels();
-          });
-        });
       }
-
-      storageUsageLabel.textContent = totalMB > 0 ? `${totalMB.toFixed(1)} MB` : "Ready";
-    } catch (err) {
-      modelsListContainer.innerHTML = `<div class="empty-state">Kokoro-82M Ready • IndexedDB active</div>`;
+      storageUsageLabel.textContent = "FP32 Master Active";
+    } catch {
+      modelsListContainer.innerHTML = `<div class="model-item">Kokoro-82M Studio Active</div>`;
     }
   }
 

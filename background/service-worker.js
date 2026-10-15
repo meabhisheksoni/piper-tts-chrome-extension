@@ -65,6 +65,10 @@ async function ensureOffscreenDocument() {
 
 // Relay messages
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message._fromSW) {
+    return false;
+  }
+
   (async () => {
     try {
       // Track the originating tab so events route reliably even if user switches tabs
@@ -87,8 +91,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       if (offscreenActionTypes.includes(message.type)) {
         await ensureOffscreenDocument();
-        // Forward message to offscreen document
-        chrome.runtime.sendMessage(message, (response) => {
+        // Forward message to offscreen document with self-suppression flag
+        chrome.runtime.sendMessage({ ...message, _fromSW: true }, (response) => {
           sendResponse(response || { success: true });
         });
         return;

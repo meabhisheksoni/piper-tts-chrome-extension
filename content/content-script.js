@@ -97,35 +97,41 @@
   let isGeminiAudioMode = false;
   let lastSummaryResult = "";
 
-  // 1. Dual-Action Trigger Pill (Speak + Summarize)
+  // 1. Triple-Action Clear Trigger Pill (Kokoro + Gemini AI + Summarize)
   const triggerPill = document.createElement("div");
   triggerPill.className = "piper-trigger-pill";
   triggerPill.style.display = "none";
   triggerPill.innerHTML = `
-    <div class="piper-speak-btn" title="Speak selected text">
-      <span class="piper-speak-icon">▶</span>
-      <span class="piper-speak-text">Speak</span>
-    </div>
+    <button class="piper-pill-btn piper-btn-kokoro" title="Listen with Kokoro-82M (100% Offline Studio Voice)">
+      <span class="piper-pill-icon">⚡</span>
+      <span class="piper-pill-text">Kokoro</span>
+    </button>
     <div class="piper-btn-divider"></div>
-    <div class="piper-summarize-btn" title="Summarize with Gemini AI">
-      <span>✨</span>
-      <span>Summarize</span>
-    </div>
-    <span class="piper-lang-badge english">EN</span>
+    <button class="piper-pill-btn piper-btn-gemini" title="Listen with Google Gemini AI (Human Conversational Voice)">
+      <span class="piper-pill-icon">✨</span>
+      <span class="piper-pill-text">Gemini AI</span>
+    </button>
+    <div class="piper-btn-divider"></div>
+    <button class="piper-pill-btn piper-btn-summarize" title="Summarize with Gemini AI">
+      <span class="piper-pill-icon">📋</span>
+      <span class="piper-pill-text">Summary</span>
+    </button>
+    <span class="piper-lang-badge" id="piper-lang-badge" title="Detected Language">EN</span>
   `;
   container.appendChild(triggerPill);
 
-  // 2. Floating Player HUD
+  // 2. Floating Minimal Player HUD
   const playerHUD = document.createElement("div");
   playerHUD.className = "piper-player-hud";
   playerHUD.style.display = "none";
   playerHUD.innerHTML = `
     <div class="piper-hud-header">
       <div class="piper-hud-title">
-        <span>🔊</span>
-        <span id="piper-voice-display">Piper Neural TTS</span>
+        <span class="piper-hud-tag kokoro" id="piper-hud-tag">⚡ Kokoro</span>
+        <span id="piper-voice-display">Heart (Female)</span>
       </div>
       <div class="piper-hud-actions">
+        <button class="piper-switch-voice-btn" id="piper-switch-voice-btn" title="Switch voice between Kokoro and Gemini AI">⇄ Switch Voice</button>
         <button class="piper-icon-btn" id="piper-close-hud" title="Close">✕</button>
       </div>
     </div>
@@ -156,8 +162,8 @@
   summaryCard.innerHTML = `
     <div class="piper-summary-header">
       <div class="piper-summary-title">
-        <span>✨</span>
-        <span>Gemini AI Summary</span>
+        <span>📋</span>
+        <span>Executive Summary</span>
       </div>
       <button class="piper-icon-btn" id="piper-close-summary" title="Close">✕</button>
     </div>
@@ -181,12 +187,13 @@
   container.appendChild(hoverCue);
 
   // DOM references
-  const speakBtn = triggerPill.querySelector(".piper-speak-btn");
-  const speakIcon = triggerPill.querySelector(".piper-speak-icon");
-  const speakText = triggerPill.querySelector(".piper-speak-text");
-  const summarizeBtn = triggerPill.querySelector(".piper-summarize-btn");
-  const langBadge = triggerPill.querySelector(".piper-lang-badge");
+  const kokoroPillBtn = triggerPill.querySelector(".piper-btn-kokoro");
+  const geminiPillBtn = triggerPill.querySelector(".piper-btn-gemini");
+  const summarizePillBtn = triggerPill.querySelector(".piper-btn-summarize");
+  const langBadge = triggerPill.querySelector("#piper-lang-badge");
 
+  const hudTag = playerHUD.querySelector("#piper-hud-tag");
+  const switchVoiceBtn = playerHUD.querySelector("#piper-switch-voice-btn");
   const playPauseBtn = playerHUD.querySelector("#piper-play-pause-btn");
   const stopBtn = playerHUD.querySelector("#piper-stop-btn");
   const closeHudBtn = playerHUD.querySelector("#piper-close-hud");
@@ -239,33 +246,20 @@
           currentSpeed = settings.defaultSpeed || 1.0;
           speedValue.textContent = `${currentSpeed.toFixed(1)}x`;
 
-          // If Gemini AI engine is chosen and API key is present
-          if (userSpeechEngine === "gemini" && userGeminiApiKey) {
-            speakIcon.textContent = "✨";
-            speakText.textContent = "Human Speak";
-            const voiceObj = GEMINI_VOICE_LIST.find(v => v.id === userGeminiVoice) || GEMINI_VOICE_LIST[0];
-            langBadge.textContent = voiceObj.label;
-            langBadge.className = "piper-lang-badge gemini";
-            langBadge.title = `Google Gemini AI Active • Voice: ${voiceObj.name} (${voiceObj.gender}) • Click to cycle persona`;
+          if (activeLanguage === "hi") {
+            activeVoiceId = settings.kokoroHindiVoice || "hf_alpha";
           } else {
-            speakIcon.textContent = "⚡";
-            speakText.textContent = "Instant Local";
-            if (activeLanguage === "hi") {
-              activeVoiceId = settings.kokoroHindiVoice || "hf_alpha";
-            } else {
-              activeVoiceId = settings.kokoroVoice || "af_heart";
-            }
-            const voiceObj = KOKORO_VOICES_LIST.find(v => v.id === activeVoiceId) || KOKORO_VOICES_LIST[0];
-            langBadge.textContent = voiceObj.label;
-            langBadge.className = `piper-lang-badge ${activeLanguage === "hi" ? "hindi" : "english"}`;
-            langBadge.title = `Kokoro-82M Neural (100% Offline) • Current: ${voiceObj.name} • Click to cycle voice`;
+            activeVoiceId = settings.kokoroVoice || "af_heart";
           }
+
+          langBadge.textContent = activeLanguage.toUpperCase();
+          langBadge.className = `piper-lang-badge ${activeLanguage === "hi" ? "hindi" : "english"}`;
         });
 
         // Position Trigger Pill near selection safely within viewport
         if (currentSelectionRange) {
           const rect = currentSelectionRange.getBoundingClientRect();
-          const pillX = Math.max(12, Math.min(window.innerWidth - 300, rect.left + window.scrollX));
+          const pillX = Math.max(12, Math.min(window.innerWidth - 360, rect.left + window.scrollX));
           const pillY = Math.max(12, rect.top + window.scrollY - 46);
           triggerPill.style.left = `${pillX}px`;
           triggerPill.style.top = `${pillY}px`;
@@ -279,163 +273,169 @@
     }, 15);
   });
 
-  // Cycle Persona / Voice on Badge Click
-  langBadge.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (userSpeechEngine === "gemini" && userGeminiApiKey) {
-      // Cycle through Gemini Voice Personas
-      const currentIdx = GEMINI_VOICE_LIST.findIndex(v => v.id === userGeminiVoice);
-      const nextIdx = (currentIdx + 1) % GEMINI_VOICE_LIST.length;
-      const nextVoice = GEMINI_VOICE_LIST[nextIdx];
-      userGeminiVoice = nextVoice.id;
-      langBadge.textContent = nextVoice.label;
-      langBadge.title = `Google Gemini AI Active • Voice: ${nextVoice.name} (${nextVoice.gender})`;
-      chrome.storage.local.set({ geminiVoice: nextVoice.id });
-    } else {
-      // Cycle through Kokoro-82M Offline Voices
-      const list = activeLanguage === "hi"
-        ? KOKORO_VOICES_LIST.filter(v => v.lang === "hi")
-        : KOKORO_VOICES_LIST.filter(v => v.lang === "en");
-      const currentIdx = list.findIndex(v => v.id === activeVoiceId);
-      const nextIdx = (currentIdx + 1) % list.length;
-      const nextVoice = list[nextIdx];
-      activeVoiceId = nextVoice.id;
-      langBadge.textContent = nextVoice.label;
-      langBadge.title = `Kokoro-82M Studio Neural • Current: ${nextVoice.name} (${nextVoice.gender})`;
-      if (activeLanguage === "hi") {
-        chrome.storage.local.set({ kokoroHindiVoice: nextVoice.id });
-      } else {
-        chrome.storage.local.set({ kokoroVoice: nextVoice.id });
-      }
-    }
-  });
+  let lastActiveText = "";
+  let lastActiveRange = null;
 
-  // Action 1: Speak Button Clicked
-  speakBtn.addEventListener("click", () => {
+  // Action 1: Kokoro Button Clicked (Instant Offline)
+  kokoroPillBtn.addEventListener("click", () => {
     triggerPill.style.display = "none";
-    startReading(currentSelectionText, currentSelectionRange);
+    startReadingWithKokoro(currentSelectionText, currentSelectionRange);
   });
 
-  // Action 2: Summarize Button Clicked
-  summarizeBtn.addEventListener("click", () => {
+  // Action 2: Gemini AI Button Clicked (Human Conversational)
+  geminiPillBtn.addEventListener("click", () => {
+    triggerPill.style.display = "none";
+    startReadingWithGemini(currentSelectionText, currentSelectionRange);
+  });
+
+  // Action 3: Summarize Button Clicked
+  summarizePillBtn.addEventListener("click", () => {
     triggerPill.style.display = "none";
     startSummarizing(currentSelectionText, currentSelectionRange);
   });
 
-  /**
-   * Reads text aloud using Google Gemini Natural AI Audio with sub-second pipelining,
-   * or Instant Local Piper TTS.
-   */
-  async function startReading(text, range) {
+  // Switch Voice Button on Player HUD (Toggles between Kokoro and Gemini)
+  switchVoiceBtn.addEventListener("click", () => {
+    if (isGeminiAudioMode) {
+      startReadingWithKokoro(lastActiveText, lastActiveRange);
+    } else {
+      startReadingWithGemini(lastActiveText, lastActiveRange);
+    }
+  });
+
+  function startReadingWithKokoro(text, range) {
     if (!text) return;
+    lastActiveText = text;
+    lastActiveRange = range;
     stopAllAudio();
 
-    const activeSession = ++geminiSessionToken;
+    isGeminiAudioMode = false;
+    isPlaying = true;
+    hudTag.className = "piper-hud-tag kokoro";
+    hudTag.textContent = "⚡ Kokoro";
 
-    // Fast-path: Check if Gemini AI Engine is active
-    if (userSpeechEngine === "gemini" && userGeminiApiKey && typeof generateGeminiAudio === "function") {
-      isGeminiAudioMode = true;
-      isPlaying = true;
-      voiceDisplay.textContent = `Gemini AI: ${userGeminiVoice} (Studio Voice)`;
-      readingText.textContent = `Connecting to Gemini 3.8 speech engine...`;
-      progressFill.style.width = "5%";
-      progressText.textContent = "Loading...";
+    const allVoices = [...KOKORO_VOICES_LIST, ...HINDI_VOICES, ...ENGLISH_VOICES];
+    const activeVoiceObj = allVoices.find(v => v.id === activeVoiceId) || KOKORO_VOICES_LIST[0];
+    voiceDisplay.textContent = `${activeVoiceObj.name} (${activeVoiceObj.gender || "Studio"})`;
+    playerHUD.style.display = "block";
+    playPauseBtn.textContent = "⏸";
+
+    highlightSelection(range);
+    fallbackToKokoro(text);
+  }
+
+  async function startReadingWithGemini(text, range) {
+    if (!text) return;
+    lastActiveText = text;
+    lastActiveRange = range;
+    stopAllAudio();
+
+    hudTag.className = "piper-hud-tag gemini";
+    hudTag.textContent = "✨ Gemini AI";
+
+    if (!userGeminiApiKey) {
       playerHUD.style.display = "block";
-      playPauseBtn.textContent = "⏸";
-
-      highlightSelection(range);
-
-      // Split text into natural sentence chunks
-      const sentenceRegex = /[^.!?।\n]+[.!?।\n]+|[^.!?।\n]+$/g;
-      const rawSentences = text.match(sentenceRegex) || [text];
-      const sentences = rawSentences.map(s => s.trim()).filter(s => s.length > 0);
-
-      if (sentences.length === 0) return;
-
-      // Prefetch pipeline map: index -> Promise<{ audioBlobUrl, mimeType }>
-      const prefetchMap = new Map();
-
-      function prefetchSentence(idx) {
-        if (idx >= sentences.length || prefetchMap.has(idx)) return;
-        prefetchMap.set(idx, generateGeminiAudio(
-          sentences[idx],
-          userGeminiApiKey,
-          userGeminiVoice,
-          userGeminiModel
-        ));
-      }
-
-      // Immediately prefetch Sentence 0 (<500ms latency) and Sentence 1
-      prefetchSentence(0);
-      if (sentences.length > 1) {
-        prefetchSentence(1);
-      }
-
-      async function playSentence(idx) {
-        if (activeSession !== geminiSessionToken || !isPlaying || idx >= sentences.length) {
-          if (idx >= sentences.length) stopAllAudio();
-          return;
-        }
-
-        const sentenceText = sentences[idx];
-        readingText.textContent = `"${sentenceText}"`;
-        progressText.textContent = `${idx + 1} / ${sentences.length}`;
-        progressFill.style.width = `${Math.round(((idx + 1) / sentences.length) * 100)}%`;
-        highlightActiveSentence(sentenceText);
-
-        // Prefetch next 2 sentences while current sentence is playing
-        if (idx + 1 < sentences.length) prefetchSentence(idx + 1);
-        if (idx + 2 < sentences.length) prefetchSentence(idx + 2);
-
-        try {
-          const { audioBlobUrl, modelUsed } = await prefetchMap.get(idx);
-          if (activeSession !== geminiSessionToken || !isPlaying) return;
-
-          if (modelUsed) {
-            voiceDisplay.textContent = `Gemini AI: ${userGeminiVoice} (${modelUsed})`;
-          }
-
-          const audio = new Audio(audioBlobUrl);
-          audio.playbackRate = currentSpeed;
-          activeGeminiAudio = audio;
-
-          audio.onended = () => {
-            try { URL.revokeObjectURL(audioBlobUrl); } catch {}
-            if (activeSession === geminiSessionToken && isPlaying) {
-              playSentence(idx + 1);
-            }
-          };
-
-          audio.onerror = (e) => {
-            console.warn(`[Gemini Audio Error on sentence ${idx}]`, e);
-            if (activeSession === geminiSessionToken && isPlaying) {
-              playSentence(idx + 1);
-            }
-          };
-
-          await audio.play();
-        } catch (err) {
-          console.warn(`[Gemini Sentence ${idx} Failed]`, err);
-          // If first sentence fails, switch to instant local Kokoro with clear error explanation
-          if (idx === 0) {
-            readingText.textContent = `⚠️ Gemini API: ${err.message}. Switching to Kokoro...`;
-            await new Promise(r => setTimeout(r, 1500));
-            if (activeSession === geminiSessionToken && isPlaying) {
-              fallbackToKokoro(text);
-            }
-          } else {
-            playSentence(idx + 1);
-          }
-        }
-      }
-
-      // Start playing Sentence 0 immediately!
-      playSentence(0);
+      voiceDisplay.textContent = "API Key Needed";
+      readingText.innerHTML = `🔑 <b>Google Gemini API Key Needed.</b> Paste your free key in extension popup, or click <b>⚡ Kokoro</b> for instant offline speech!`;
+      playPauseBtn.textContent = "▶";
       return;
     }
 
-    // Default: Instant Local Kokoro-82M Neural Engine
-    fallbackToKokoro(text);
+    isGeminiAudioMode = true;
+    isPlaying = true;
+    voiceDisplay.textContent = `${userGeminiVoice} (Connecting...)`;
+    readingText.textContent = "Connecting to Google Gemini speech engine...";
+    progressFill.style.width = "5%";
+    progressText.textContent = "1 / ...";
+    playerHUD.style.display = "block";
+    playPauseBtn.textContent = "⏸";
+
+    highlightSelection(range);
+
+    const sentenceRegex = /[^.!?।\n]+[.!?।\n]+|[^.!?।\n]+$/g;
+    const rawSentences = text.match(sentenceRegex) || [text];
+    const sentences = rawSentences.map(s => s.trim()).filter(s => s.length > 0);
+    if (sentences.length === 0) return;
+
+    const activeSession = ++geminiSessionToken;
+    const prefetchMap = new Map();
+
+    function prefetchSentence(idx) {
+      if (idx >= sentences.length || prefetchMap.has(idx)) return;
+      prefetchMap.set(idx, generateGeminiAudio(
+        sentences[idx],
+        userGeminiApiKey,
+        userGeminiVoice,
+        userGeminiModel
+      ));
+    }
+
+    prefetchSentence(0);
+    if (sentences.length > 1) prefetchSentence(1);
+
+    async function playSentence(idx) {
+      if (activeSession !== geminiSessionToken || !isPlaying || idx >= sentences.length) {
+        if (idx >= sentences.length) stopAllAudio();
+        return;
+      }
+
+      const sentenceText = sentences[idx];
+      readingText.textContent = `"${sentenceText}"`;
+      progressText.textContent = `${idx + 1} / ${sentences.length}`;
+      progressFill.style.width = `${Math.round(((idx + 1) / sentences.length) * 100)}%`;
+      highlightActiveSentence(sentenceText);
+
+      if (idx + 1 < sentences.length) prefetchSentence(idx + 1);
+      if (idx + 2 < sentences.length) prefetchSentence(idx + 2);
+
+      try {
+        const { audioBlobUrl, modelUsed } = await prefetchMap.get(idx);
+        if (activeSession !== geminiSessionToken || !isPlaying) return;
+
+        voiceDisplay.textContent = `${userGeminiVoice} (${modelUsed || "AI Studio"})`;
+
+        const audio = new Audio(audioBlobUrl);
+        audio.playbackRate = currentSpeed;
+        activeGeminiAudio = audio;
+
+        audio.onended = () => {
+          try { URL.revokeObjectURL(audioBlobUrl); } catch {}
+          if (activeSession === geminiSessionToken && isPlaying) {
+            playSentence(idx + 1);
+          }
+        };
+
+        audio.onerror = (e) => {
+          console.warn(`[Gemini Audio Error on sentence ${idx}]`, e);
+          if (activeSession === geminiSessionToken && isPlaying) {
+            playSentence(idx + 1);
+          }
+        };
+
+        await audio.play();
+      } catch (err) {
+        console.warn(`[Gemini Sentence ${idx} Failed]`, err);
+        if (idx === 0) {
+          readingText.textContent = `⚠️ Gemini API: ${err.message}. Switching to Kokoro...`;
+          await new Promise(r => setTimeout(r, 1400));
+          if (activeSession === geminiSessionToken && isPlaying) {
+            startReadingWithKokoro(text, range);
+          }
+        } else {
+          playSentence(idx + 1);
+        }
+      }
+    }
+
+    playSentence(0);
+  }
+
+  function startReading(text, range) {
+    if (userSpeechEngine === "gemini" && userGeminiApiKey) {
+      startReadingWithGemini(text, range);
+    } else {
+      startReadingWithKokoro(text, range);
+    }
   }
 
   function fallbackToKokoro(text) {

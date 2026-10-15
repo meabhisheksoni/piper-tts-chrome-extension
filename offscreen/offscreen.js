@@ -12,7 +12,6 @@ let isPaused = false;
 let playbackSpeed = 1.0;
 let activeVoiceId = "af_heart";
 let sessionEpoch = 0; // Monotonic token to prevent concurrent audio playback cascades
-let activeUtterance = null; // Web Speech fallback instance if ONNX model is still initializing
 
 // Kokoro Engine State
 let kokoroModelInstance = null;
@@ -300,8 +299,11 @@ async function playCurrentChunk() {
 /**
  * Plays a Web Audio API AudioBuffer with real-time speed control.
  */
-function playAudioBuffer(audioBuffer) {
+async function playAudioBuffer(audioBuffer) {
   const ctx = getAudioContext();
+  if (ctx.state === "suspended") {
+    await ctx.resume();
+  }
 
   return new Promise((resolve) => {
     currentSourceNode = ctx.createBufferSource();
@@ -319,42 +321,6 @@ function playAudioBuffer(audioBuffer) {
 }
 
 /**
- * Synthesizes and plays a chunk using Web Speech API fallback.
- */
-function playWebSpeechChunk(text) {
-  return new Promise((resolve) => {
-    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
-      window.speechSynthesis.cancel();
-    }
-
-    setTimeout(() => {
-      activeUtterance = new SpeechSynthesisUtterance(text);
-      activeUtterance.rate = playbackSpeed;
-
-      const voices = window.speechSynthesis.getVoices();
-      if (voices && voices.length > 0) {
-        const isHindi = /[\u0900-\u097F]/.test(text);
-        const prefix = isHindi ? "hi" : "en";
-        const matched = voices.find(v => v.lang.toLowerCase().startsWith(prefix));
-        if (matched) activeUtterance.voice = matched;
-      }
-
-      activeUtterance.onend = () => {
-        activeUtterance = null;
-        resolve();
-      };
-
-      activeUtterance.onerror = () => {
-        activeUtterance = null;
-        resolve();
-      };
-
-      window.speechSynthesis.speak(activeUtterance);
-    }, 45);
-  });
-}
-
-/**
  * Seeks instantly to a specific chunk (Hover-to-Seek / Paragraph Skip).
  */
 function seekToChunk(targetChunkId) {
@@ -368,10 +334,6 @@ function seekToChunk(targetChunkId) {
   if (currentSourceNode) {
     try { currentSourceNode.stop(); } catch (e) {}
     currentSourceNode = null;
-  }
-  if (window.speechSynthesis) {
-    window.speechSynthesis.cancel();
-    activeUtterance = null;
   }
 
   currentChunkIndex = targetIndex;
@@ -404,9 +366,6 @@ function pausePlayback() {
   if (audioCtx && audioCtx.state === "running") {
     audioCtx.suspend();
   }
-  if (window.speechSynthesis && window.speechSynthesis.speaking) {
-    window.speechSynthesis.pause();
-  }
 }
 
 function resumePlayback() {
@@ -414,9 +373,6 @@ function resumePlayback() {
     isPaused = false;
     if (audioCtx && audioCtx.state === "suspended") {
       audioCtx.resume();
-    }
-    if (window.speechSynthesis && window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
     }
   }
 }
@@ -429,10 +385,6 @@ function stopPlayback() {
   if (currentSourceNode) {
     try { currentSourceNode.stop(); } catch (e) {}
     currentSourceNode = null;
-  }
-  if (window.speechSynthesis) {
-    window.speechSynthesis.cancel();
-    activeUtterance = null;
   }
 }
 
