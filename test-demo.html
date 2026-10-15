@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Piper Neural TTS - Test & Verification Page</title>
+  <title>Piper Neural TTS + Gemini AI - Test & Verification Page</title>
   <style>
     body {
-      max-width: 800px;
+      max-width: 820px;
       margin: 40px auto;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       line-height: 1.7;
@@ -13,6 +13,11 @@
       padding: 0 20px;
     }
     h1 { color: #0f172a; margin-bottom: 8px; }
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
     .badge {
       display: inline-block;
       background: #e0f2fe;
@@ -21,7 +26,10 @@
       font-weight: bold;
       padding: 4px 8px;
       border-radius: 4px;
-      margin-bottom: 24px;
+    }
+    .badge-ai {
+      background: #f3e8ff;
+      color: #7e22ce;
     }
     .card {
       border: 1px solid #e2e8f0;
@@ -32,25 +40,47 @@
     }
     .card-hindi { border-left: 5px solid #ea580c; }
     .card-english { border-left: 5px solid #2563eb; }
+    .card-article { border-left: 5px solid #a855f7; }
     h2 { margin-top: 0; color: #1e293b; font-size: 18px; }
     p { margin-bottom: 14px; font-size: 15px; }
     .instruction {
       background: #f8fafc;
       border: 1px dashed #cbd5e1;
-      padding: 12px 16px;
-      border-radius: 8px;
+      padding: 14px 18px;
+      border-radius: 10px;
       font-size: 13px;
-      color: #64748b;
-      margin-bottom: 16px;
+      color: #475569;
+      margin-bottom: 20px;
+      line-height: 1.6;
     }
   </style>
 </head>
 <body>
-  <h1>Piper Neural TTS Extension Test Page</h1>
-  <div class="badge">Local WebAssembly & ONNX Inference</div>
+  <h1>Piper Neural TTS + Gemini AI Test Page</h1>
+  <div class="badge-row">
+    <span class="badge">v1.1.0</span>
+    <span class="badge badge-ai">✨ Google Gemini 2.0 AI Audio</span>
+    <span class="badge">🧠 Smart Executive Summarizer</span>
+    <span class="badge">🛡️ Offline Piper Fallback</span>
+  </div>
 
   <div class="instruction">
-    👉 <strong>How to Test:</strong> Select any text in the boxes below. Notice how the floating "🔊 Speak" pill automatically shows <code>[HI]</code> for Hindi and <code>[EN]</code> for English. While speaking, drag or wheel-scroll the speed widget to scrub between 0.5x and 2.5x, and move your mouse cursor over the next paragraph to trigger <strong>Hover-to-Seek</strong>!
+    👉 <strong>Dual Feature Testing:</strong><br>
+    1. <strong>Drag & Select</strong> any paragraph below.<br>
+    2. Click <strong>✨ Summarize</strong> to extract 30-second executive insights & bullet points.<br>
+    3. Click <strong>▶ Speak</strong> (or <strong>🔊 Listen to Summary</strong>) to hear natural human speech with pauses, cadence, and emotion.<br>
+    4. While speaking, drag the speed pill left/right or scroll to scrub speed between 0.5x and 2.5x!
+  </div>
+
+  <!-- Long Article Test Card for Summarization -->
+  <div class="card card-article">
+    <h2>📰 Long Article Test (Drag & Click "Summarize")</h2>
+    <p>
+      Artificial intelligence speech generation has progressed dramatically from robotic concatenative synthesizers to modern neural multimodal foundation models. Early text-to-speech architectures often struggled with conversational pacing, natural breath pauses, and contextual emotion, resulting in robotic and monotonic speech delivery. Modern systems, such as Google Gemini 2.0 Flash Audio, incorporate contextual comprehension directly into their audio generation pipeline.
+    </p>
+    <p>
+      By understanding the semantic nuances of text before synthesizing audio, these models naturally determine where to pause for emphasis, how to modulate pitch when asking a question, and how to match the tone of an interviewer or professional narrator. Furthermore, integrating on-device summarization allows users to quickly extract high-signal insights from long reports before listening to a 30-second audio summary instead of a 20-minute document.
+    </p>
   </div>
 
   <!-- Hindi Test Card -->
@@ -60,7 +90,7 @@
       भारत एक अत्यंत समृद्ध और विविधतापूर्ण देश है। यहाँ कई भाषाएँ, संस्कृतियाँ और परंपराएँ एक साथ मिलकर रहती हैं। हिमालय की पर्वतमाला से लेकर दक्षिण के सागर तट तक, देश की प्राकृतिक सुंदरता अद्वितीय है।
     </p>
     <p>
-      पाइपर न्यूरल टेक्स्ट-टू-स्पीच आपके ब्राउज़र में सीधे काम करता है। किसी भी बाहरी सर्वर पर आपका डेटा नहीं जाता है। जब आप इस अनुच्छेद पर माउस ले जाते हैं, तो आवाज़ अपने आप यहाँ से शुरू हो जाती है।
+      गूगल जेमिनी 2.0 और पाइपर न्यूरल टेक्स्ट-टू-स्पीच आपके ब्राउज़र में सीधे काम करते हैं। जब आप इस अनुच्छेद को चुनते हैं, तो यह अपने आप हिन्दी पहचान लेता है और आप इसे समराइज़ भी कर सकते हैं या मानवीय आवाज़ में सुन सकते हैं।
     </p>
   </div>
 
@@ -71,7 +101,7 @@
       Rhasspy Piper is a fast, local neural text-to-speech system designed to run on resource-constrained devices with high naturalness. It uses the VITS architecture to synthesize speech directly from phonemes in real time.
     </p>
     <p>
-      By implementing an offscreen document in Chrome Manifest V3, this extension provides low latency audio playback and instantaneous seek controls. Try moving your cursor over this second paragraph to experience the hover-to-seek feature.
+      With Google Gemini 2.0 AI Audio connected, you unlock human-grade interviewer voices like Puck, Kore, Fenrir, and Aoede. Try selecting this text, dragging to scrub speed, and hovering over the next paragraph to test instant jump!
     </p>
   </div>
 </body>

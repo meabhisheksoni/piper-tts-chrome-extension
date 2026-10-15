@@ -11,6 +11,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const modelsListContainer = document.getElementById("models-list");
   const storageUsageLabel = document.getElementById("storage-usage");
 
+  // Gemini AI Controls
+  const geminiApiKeyInput = document.getElementById("gemini-api-key");
+  const toggleKeyVisibilityBtn = document.getElementById("toggle-key-visibility");
+  const geminiModelSelect = document.getElementById("gemini-model-select");
+  const geminiVoiceSelect = document.getElementById("gemini-voice-select");
+  const geminiStatusBadge = document.getElementById("gemini-status-badge");
+
   // Load existing settings
   const settings = await getSettings();
   if (settings.preferredLanguage) languageModeSelect.value = settings.preferredLanguage;
@@ -24,7 +31,54 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (settings.preferredHindiVoice) hindiVoiceSelect.value = settings.preferredHindiVoice;
   if (settings.preferredEnglishVoice) englishVoiceSelect.value = settings.preferredEnglishVoice;
 
-  // Persist settings changes
+  // Load Gemini settings
+  if (settings.geminiApiKey) {
+    geminiApiKeyInput.value = settings.geminiApiKey;
+    updateGeminiStatusBadge(true);
+  } else {
+    updateGeminiStatusBadge(false);
+  }
+  if (settings.geminiModel) geminiModelSelect.value = settings.geminiModel;
+  if (settings.geminiVoice) geminiVoiceSelect.value = settings.geminiVoice;
+
+  // Persist Gemini settings changes
+  geminiApiKeyInput.addEventListener("input", () => {
+    const key = geminiApiKeyInput.value.trim();
+    updateSettings({ geminiApiKey: key });
+    updateGeminiStatusBadge(!!key);
+  });
+
+  toggleKeyVisibilityBtn.addEventListener("click", () => {
+    if (geminiApiKeyInput.type === "password") {
+      geminiApiKeyInput.type = "text";
+      toggleKeyVisibilityBtn.textContent = "Hide";
+    } else {
+      geminiApiKeyInput.type = "password";
+      toggleKeyVisibilityBtn.textContent = "Show";
+    }
+  });
+
+  geminiModelSelect.addEventListener("change", () => {
+    updateSettings({ geminiModel: geminiModelSelect.value });
+  });
+
+  geminiVoiceSelect.addEventListener("change", () => {
+    updateSettings({ geminiVoice: geminiVoiceSelect.value });
+  });
+
+  function updateGeminiStatusBadge(hasKey) {
+    if (hasKey) {
+      geminiStatusBadge.textContent = "✅ AI Connected";
+      geminiStatusBadge.style.background = "#065f46";
+      geminiStatusBadge.style.color = "#a7f3d0";
+    } else {
+      geminiStatusBadge.textContent = "🔑 Key Needed";
+      geminiStatusBadge.style.background = "#854d0e";
+      geminiStatusBadge.style.color = "#fef08a";
+    }
+  }
+
+  // Persist general settings changes
   languageModeSelect.addEventListener("change", () => {
     updateSettings({ preferredLanguage: languageModeSelect.value });
   });
@@ -47,19 +101,62 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateSettings({ hoverToSeekEnabled: hoverSeekToggle.checked });
   });
 
-  // Test Voice Sample with Authentic Piper Studio Quality
+  // Test Voice Sample (Supports Gemini Human Voice OR Piper Studio Sample)
   let activeTestAudio = null;
 
-  testVoiceBtn.addEventListener("click", () => {
-    const lang = languageModeSelect.value;
-    const isHindi = lang === "hi";
-    const voiceId = isHindi ? hindiVoiceSelect.value : englishVoiceSelect.value;
-    const voice = PIPER_VOICES[voiceId];
+  testVoiceBtn.addEventListener("click", async () => {
+    const currentSettings = await getSettings();
+    const hasGeminiKey = !!currentSettings.geminiApiKey;
 
     if (activeTestAudio) {
       activeTestAudio.pause();
       activeTestAudio = null;
     }
+
+    if (hasGeminiKey && typeof generateGeminiAudio === "function") {
+      // Test using Gemini 2.0 / 3.8 Human AI Voice
+      testVoiceBtn.innerHTML = `<span>✨</span><span>Generating Gemini AI Voice (${currentSettings.geminiVoice || "Puck"})...</span>`;
+      testVoiceBtn.style.background = "#6366f1";
+
+      const isHindi = currentSettings.preferredLanguage === "hi";
+      const sampleText = isHindi
+        ? "नमस्ते! मैं गूगल जेमिनी का नेचुरल ह्यूमन वॉयस मॉडल हूँ। मैं पॉज, इमोशन और इंटरव्यू स्टाइल में बात कर सकता हूँ।"
+        : "Hello! I am Google Gemini's natural human AI voice model. I speak with natural cadence, pauses, and expressive interviewer tone.";
+
+      try {
+        const { audioBlobUrl } = await generateGeminiAudio(
+          sampleText,
+          currentSettings.geminiApiKey,
+          currentSettings.geminiVoice || "Puck",
+          currentSettings.geminiModel || "gemini-2.0-flash"
+        );
+
+        testVoiceBtn.innerHTML = `<span>🔊</span><span>Playing Gemini Human Audio...</span>`;
+        testVoiceBtn.style.background = "#10b981";
+
+        const audio = new Audio(audioBlobUrl);
+        audio.playbackRate = parseFloat(defaultSpeedSlider.value) || 1.0;
+        activeTestAudio = audio;
+
+        audio.onended = () => {
+          testVoiceBtn.innerHTML = `<span>▶</span><span>Test Active Voice Sample</span>`;
+          testVoiceBtn.style.background = "#38bdf8";
+          activeTestAudio = null;
+        };
+
+        await audio.play();
+        return;
+      } catch (err) {
+        console.warn("[Gemini Audio Test Failed, falling back]", err);
+        testVoiceBtn.innerHTML = `<span>⚠️</span><span>API Error: Playing Piper Sample</span>`;
+      }
+    }
+
+    // Fallback: Test with Piper Studio Quality Sample
+    const lang = languageModeSelect.value;
+    const isHindi = lang === "hi";
+    const voiceId = isHindi ? hindiVoiceSelect.value : englishVoiceSelect.value;
+    const voice = PIPER_VOICES[voiceId];
 
     if (voice && voice.sampleUrl) {
       testVoiceBtn.innerHTML = `<span>🔊</span><span>Playing ${voice.name} (${voice.gender === "female" ? "Female" : "Male"}, ${voice.quality})...</span>`;
@@ -76,7 +173,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       };
 
       audio.onerror = () => {
-        // Fallback to synthesis message if audio URL fails
         fallbackTestSynthesis(isHindi, voiceId);
       };
 
@@ -106,7 +202,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const cached = await listCachedModels();
       if (!cached || cached.length === 0) {
-        modelsListContainer.innerHTML = '<div class="empty-state">No models cached yet. Models cache automatically upon first playback.</div>';
+        modelsListContainer.innerHTML = '<div class="empty-state">No offline Piper models cached yet. Models cache automatically upon first playback.</div>';
         storageUsageLabel.textContent = "0.0 MB";
         return;
       }

@@ -62,6 +62,13 @@ body {
   margin-bottom: 14px;
 }
 
+.gemini-card {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 10px;
+  padding: 12px;
+}
+
 .section-label {
   display: block;
   font-size: 11px;

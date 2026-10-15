@@ -63,6 +63,12 @@
   color: #eff6ff;
 }
 
+.piper-lang-badge.gemini {
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+}
+
 /* Floating Player HUD */
 .piper-player-hud {
   position: fixed;
@@ -296,4 +302,117 @@
 @keyframes piperSlideUp {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Two-action trigger pill enhancements */
+.piper-btn-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 2px;
+}
+
+.piper-summarize-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #c084fc;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.piper-summarize-btn:hover {
+  color: #e879f9;
+}
+
+/* Gemini Smart Summary Card */
+.piper-summary-card {
+  position: absolute;
+  width: 380px;
+  max-width: 90vw;
+  background: #0f172a;
+  color: #f8fafc;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(192, 132, 252, 0.3);
+  padding: 16px;
+  z-index: 2147483647;
+  backdrop-filter: blur(16px);
+  animation: piperSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(192, 132, 252, 0.25);
+}
+
+.piper-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #1e293b;
+  padding-bottom: 8px;
+}
+
+.piper-summary-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #c084fc;
+}
+
+.piper-summary-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e2e8f0;
+  max-height: 280px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  background: #1e293b;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.piper-summary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.piper-summary-listen-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  color: #ffffff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.piper-summary-listen-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.piper-summary-copy-btn {
+  background: #334155;
+  color: #f1f5f9;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.piper-summary-copy-btn:hover {
+  background: #475569;
 }
