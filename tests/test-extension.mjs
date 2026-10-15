@@ -20,6 +20,31 @@ console.log("🚀 STARTING AUTOMATED HEADLESS EXTENSION TEST SUITE");
 console.log("=================================================");
 
 async function run() {
+  console.log("0. Validating Manifest V3 match patterns & schema integrity...");
+  const manifest = JSON.parse(fs.readFileSync(path.join(extensionPath, "manifest.json"), "utf8"));
+  
+  function validatePattern(pattern) {
+    if (pattern === "<all_urls>") return;
+    const match = pattern.match(/^(\*|https?|file|ftp|wss?):\/\/([^\/]+)(\/.*)$/);
+    if (!match) throw new Error(`URL pattern '${pattern}' is malformed (invalid syntax).`);
+    const host = match[2];
+    if (host !== "*" && host.includes("*")) {
+      if (!host.startsWith("*.") || host.slice(2).includes("*")) {
+        throw new Error(`URL pattern '${pattern}' is malformed. Wildcard in host must only be leading '*.'`);
+      }
+    }
+  }
+
+  for (const hostPerm of manifest.host_permissions || []) {
+    validatePattern(hostPerm);
+  }
+  for (const cs of manifest.content_scripts || []) {
+    for (const match of cs.matches || []) {
+      validatePattern(match);
+    }
+  }
+  console.log("✅ Manifest match patterns strictly validated with zero errors.");
+
   const isCI = !!process.env.CI;
   const launchOptions = {
     headless: false,

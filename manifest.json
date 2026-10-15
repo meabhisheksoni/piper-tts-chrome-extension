@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Piper & Kokoro Neural Text-to-Speech",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Read aloud selected text with Google Gemini 3.8 AI & Kokoro-82M Studio Neural Voice, 100% offline local engine, auto Hindi/English language detection, smart AI summarization, mouse speed scrubbing, and hover-to-seek.",
   "icons": {
     "16": "icons/icon16.png",
@@ -34,8 +34,6 @@
     "https://*.huggingface.co/*",
     "https://hf.co/*",
     "https://*.hf.co/*",
-    "https://cdn-lfs.huggingface.co/*",
-    "https://cdn-lfs-*.huggingface.co/*",
     "https://cdn.jsdelivr.net/*",
     "https://*.jsdelivr.net/*",
     "https://rhasspy.github.io/*",
