@@ -20,9 +20,11 @@ console.log("🚀 STARTING AUTOMATED HEADLESS EXTENSION TEST SUITE");
 console.log("=================================================");
 
 async function run() {
+  const isCI = !!process.env.CI;
   const launchOptions = {
+    headless: false,
     args: [
-      "--headless=new",
+      ...(isCI ? [] : ["--headless=new"]),
       `--disable-extensions-except=${extensionPath}`,
       `--load-extension=${extensionPath}`,
       "--no-sandbox",
@@ -206,7 +208,7 @@ async function run() {
   console.log(`Popup loaded. Initial test button text: "${initialText}"`);
 
   console.log("Dispatching click on #test-voice-btn...");
-  await popupPage.evaluate(() => document.getElementById("test-voice-btn").click());
+  await popupPage.evaluate(() => setTimeout(() => document.getElementById("test-voice-btn").click(), 50));
 
   let playingDetected = false;
   let errorDetected = false;
