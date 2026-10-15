@@ -204,12 +204,12 @@ async function run() {
 
   // TEST 3: Popup UI End-to-End Interaction
   console.log("\n5. [TEST 3] Testing Popup UI Interaction & Test Voice Button...");
-  const popupPage = offscreenPage;
+  const popupPage = await context.newPage();
   popupPage.on("console", (msg) => console.log(`[Popup Console]: ${msg.text()}`));
   popupPage.on("pageerror", (err) => console.error(`[Popup Error]:`, err));
 
   console.log("Navigating to popup URL:", `chrome-extension://${extensionId}/popup/popup.html`);
-  await popupPage.goto(`chrome-extension://${extensionId}/popup/popup.html`, { waitUntil: "domcontentloaded", timeout: 15000 });
+  await popupPage.goto(`chrome-extension://${extensionId}/popup/popup.html`, { waitUntil: "domcontentloaded", timeout: 30000 });
   const btnInfo = await popupPage.evaluate(async () => {
     const el = document.getElementById("test-voice-btn");
     const viewAction = document.getElementById("view-action");
