@@ -1,0 +1,190 @@
+/* Popup UI Stylesheet */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  width: 350px;
+  background-color: #0f172a;
+  color: #f8fafc;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.popup-container {
+  padding: 16px;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #1e293b;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  font-size: 24px;
+}
+
+.logo-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.logo-subtitle {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.badge {
+  background: #1e293b;
+  color: #38bdf8;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.section {
+  margin-bottom: 14px;
+}
+
+.section-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.select-input {
+  width: 100%;
+  background: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #334155;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.select-input:hover, .select-input:focus {
+  border-color: #38bdf8;
+}
+
+.row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.val-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.slider {
+  width: 100%;
+  accent-color: #38bdf8;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.primary-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #38bdf8;
+  color: #0f172a;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.primary-btn:hover {
+  background: #7dd3fc;
+}
+
+.models-list {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 8px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.model-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 4px;
+  border-bottom: 1px solid #334155;
+  font-size: 11px;
+}
+
+.model-item:last-child {
+  border-bottom: none;
+}
+
+.model-name {
+  color: #f1f5f9;
+  font-weight: 500;
+}
+
+.model-size {
+  color: #94a3b8;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 11px;
+}
+
+.delete-btn:hover {
+  text-decoration: underline;
+}
+
+.empty-state {
+  text-align: center;
+  color: #64748b;
+  font-size: 11px;
+  padding: 8px;
+}
+
+.popup-footer {
+  text-align: center;
+  font-size: 10px;
+  color: #64748b;
+  border-top: 1px solid #1e293b;
+  padding-top: 10px;
+  margin-top: 8px;
+}

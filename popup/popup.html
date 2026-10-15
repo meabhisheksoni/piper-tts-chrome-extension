@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Piper Neural TTS</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="logo-row">
+        <span class="logo-icon">🔊</span>
+        <div>
+          <h1 class="logo-title">Piper Neural TTS</h1>
+          <p class="logo-subtitle">Offline & Private Speech Engine</p>
+        </div>
+      </div>
+      <span class="badge">v1.0.0</span>
+    </header>
+
+    <!-- Language & Auto-Detection -->
+    <section class="section">
+      <label class="section-label">Language Detection Mode</label>
+      <select id="language-mode" class="select-input">
+        <option value="auto">🌐 Auto-Detect (Hindi & English)</option>
+        <option value="hi">🇮🇳 Force Hindi (हिन्दी)</option>
+        <option value="en">🇺🇸 Force English (US)</option>
+      </select>
+    </section>
+
+    <!-- Preferred Voices -->
+    <section class="section">
+      <label class="section-label">Hindi Voice Persona</label>
+      <select id="hindi-voice-select" class="select-input">
+        <option value="hi_IN-pratham-medium">Pratham (Male, Natural - 38MB)</option>
+        <option value="hi_IN-priyamvada-medium">Priyamvada (Female, Clear - 38MB)</option>
+        <option value="hi_IN-rohan-medium">Rohan (Male, Deep - 38MB)</option>
+      </select>
+
+      <label class="section-label" style="margin-top: 10px;">English Voice Persona</label>
+      <select id="english-voice-select" class="select-input">
+        <option value="en_US-lessac-low">Lessac (Female, Fast - 16MB)</option>
+        <option value="en_US-lessac-medium">Lessac (Female, Natural - 38MB)</option>
+        <option value="en_US-amy-low">Amy (Female, Fast - 16MB)</option>
+        <option value="en_US-amy-medium">Amy (Female, Natural - 38MB)</option>
+        <option value="en_US-danny-low">Danny (Male, Fast - 16MB)</option>
+      </select>
+    </section>
+
+    <!-- Speed & Hover Settings -->
+    <section class="section">
+      <div class="row-between">
+        <label class="section-label">Default Reading Speed</label>
+        <span id="speed-label" class="val-label">1.0x</span>
+      </div>
+      <input type="range" id="default-speed" min="0.5" max="2.5" step="0.1" value="1.0" class="slider">
+
+      <div class="row-between" style="margin-top: 12px;">
+        <label class="section-label">Hover-to-Seek (Paragraph Jump)</label>
+        <input type="checkbox" id="hover-seek-toggle" checked>
+      </div>
+    </section>
+
+    <!-- Test Audio Button -->
+    <section class="section">
+      <button id="test-voice-btn" class="primary-btn">
+        <span>▶</span>
+        <span>Test Active Voice Sample</span>
+      </button>
+    </section>
+
+    <!-- Cached Models in IndexedDB -->
+    <section class="section">
+      <div class="row-between">
+        <label class="section-label">Cached Neural Models</label>
+        <span id="storage-usage" class="val-label">0.0 MB</span>
+      </div>
+      <div id="models-list" class="models-list">
+        <div class="empty-state">Checking offline models...</div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <span>100% Client-Side • Powered by Rhasspy Piper</span>
+    </footer>
+  </div>
+
+  <script src="../lib/voices-data.js"></script>
+  <script src="../lib/storage.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

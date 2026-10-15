@@ -1,0 +1,131 @@
+// Background Service Worker (Manifest V3)
+// Coordinates message relay between Content Script and Offscreen Audio Sandbox
+
+const OFFSCREEN_DOCUMENT_PATH = "offscreen/offscreen.html";
+
+// Ensure context menus on install
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: "piper-speak-selection",
+    title: "🔊 Read with Piper Neural TTS",
+    contexts: ["selection"]
+  });
+});
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === "piper-speak-selection" && tab && tab.id) {
+    chrome.tabs.sendMessage(tab.id, {
+      type: "TRIGGER_SPEAK_SELECTION",
+      selectedText: info.selectionText
+    });
+  }
+});
+
+/**
+ * Checks if the offscreen document is already created.
+ */
+async function hasOffscreenDocument() {
+  if ("getContexts" in chrome.runtime) {
+    const contexts = await chrome.runtime.getContexts({
+      contextTypes: ["OFFSCREEN_DOCUMENT"],
+      documentUrls: [chrome.runtime.getURL(OFFSCREEN_DOCUMENT_PATH)]
+    });
+    return contexts.length > 0;
+  }
+  return false;
+}
+
+let creatingOffscreenPromise = null;
+let activePlaybackTabId = null;
+
+/**
+ * Creates the offscreen document if not already running.
+ * Uses a singleton promise mutex to prevent concurrent creation collisions.
+ */
+async function ensureOffscreenDocument() {
+  if (await hasOffscreenDocument()) {
+    return;
+  }
+
+  if (creatingOffscreenPromise) {
+    await creatingOffscreenPromise;
+    return;
+  }
+
+  creatingOffscreenPromise = chrome.offscreen.createDocument({
+    url: OFFSCREEN_DOCUMENT_PATH,
+    reasons: ["AUDIO_PLAYBACK", "WORKERS"],
+    justification: "Run Piper ONNX neural TTS inference and stream Web Audio API playback"
+  }).finally(() => {
+    creatingOffscreenPromise = null;
+  });
+
+  await creatingOffscreenPromise;
+}
+
+// Relay messages
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  (async () => {
+    try {
+      // Track the originating tab so events route reliably even if user switches tabs
+      if (message.type === "SYNTHESIZE_AND_PLAY" && sender.tab && sender.tab.id) {
+        activePlaybackTabId = sender.tab.id;
+      }
+
+      // Messages destined for the offscreen audio player
+      const offscreenActionTypes = [
+        "SYNTHESIZE_AND_PLAY",
+        "PAUSE_PLAYBACK",
+        "RESUME_PLAYBACK",
+        "STOP_PLAYBACK",
+        "SET_PLAYBACK_SPEED",
+        "SEEK_TO_CHUNK",
+        "DOWNLOAD_MODEL",
+        "GET_PLAYER_STATUS"
+      ];
+
+      if (offscreenActionTypes.includes(message.type)) {
+        await ensureOffscreenDocument();
+        // Forward message to offscreen document
+        chrome.runtime.sendMessage(message, (response) => {
+          sendResponse(response || { success: true });
+        });
+        return;
+      }
+
+      // Messages originating from offscreen destined for the content script
+      const contentEventTypes = [
+        "CHUNK_STARTED",
+        "CHUNK_COMPLETED",
+        "PLAYBACK_FINISHED",
+        "PLAYBACK_ERROR",
+        "DOWNLOAD_PROGRESS"
+      ];
+
+      if (contentEventTypes.includes(message.type)) {
+        // Unicast event directly to the tab where reading is taking place
+        if (activePlaybackTabId) {
+          chrome.tabs.sendMessage(activePlaybackTabId, message).catch(() => {
+            // Tab was closed or refreshed
+            activePlaybackTabId = null;
+          });
+        } else {
+          // Fallback to active tab if initiated from popup
+          const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (activeTab && activeTab.id) {
+            chrome.tabs.sendMessage(activeTab.id, message).catch(() => {});
+          }
+        }
+        sendResponse({ received: true });
+        return;
+      }
+
+      sendResponse({ status: "acknowledged" });
+    } catch (err) {
+      console.error("[Piper Service Worker] Error handling message:", err);
+      sendResponse({ error: err.message });
+    }
+  })();
+
+  return true; // Keep message channel open for async response
+});

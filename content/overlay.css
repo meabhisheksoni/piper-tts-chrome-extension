@@ -1,0 +1,299 @@
+/* Piper TTS Extension Stylesheet - Fully Scoped to Closed Shadow DOM */
+
+:host {
+  all: initial;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1e293b;
+  z-index: 2147483647;
+}
+
+/* Floating Trigger Pill */
+.piper-trigger-pill {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 2147483647;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  animation: piperFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.piper-trigger-pill:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 14px 28px -5px rgba(0, 0, 0, 0.4);
+}
+
+.piper-speak-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #38bdf8;
+}
+
+.piper-lang-badge {
+  background: #334155;
+  color: #f1f5f9;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.piper-lang-badge.hindi {
+  background: #c2410c;
+  color: #ffedd5;
+}
+
+.piper-lang-badge.english {
+  background: #1d4ed8;
+  color: #eff6ff;
+}
+
+/* Floating Player HUD */
+.piper-player-hud {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 360px;
+  background: #0f172a;
+  color: #f8fafc;
+  border-radius: 16px;
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  padding: 16px;
+  z-index: 2147483647;
+  user-select: none;
+  backdrop-filter: blur(12px);
+  animation: piperSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.piper-hud-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.piper-hud-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.piper-hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.piper-icon-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.piper-icon-btn:hover {
+  color: #f8fafc;
+  background: #1e293b;
+}
+
+.piper-reading-text {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #e2e8f0;
+  background: #1e293b;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  max-height: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  border-left: 3px solid #38bdf8;
+}
+
+/* Progress bar */
+.piper-progress-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.piper-progress-track {
+  flex: 1;
+  height: 6px;
+  background: #334155;
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.piper-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  width: 0%;
+  border-radius: 9999px;
+  transition: width 0.2s ease;
+}
+
+.piper-progress-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  min-width: 45px;
+  text-align: right;
+}
+
+/* Main Controls */
+.piper-hud-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.piper-playback-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.piper-play-pause-btn {
+  background: #38bdf8;
+  color: #0f172a;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: bold;
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.piper-play-pause-btn:hover {
+  background: #7dd3fc;
+  transform: scale(1.05);
+}
+
+.piper-stop-btn {
+  background: #334155;
+  color: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.piper-stop-btn:hover {
+  background: #ef4444;
+}
+
+/* Interactive Mouse Speed Scrub Controller */
+.piper-speed-scrubber {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1e293b;
+  padding: 6px 12px;
+  border-radius: 10px;
+  cursor: ew-resize;
+  border: 1px solid #334155;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.piper-speed-scrubber:hover, .piper-speed-scrubber.active-scrub {
+  background: #334155;
+  border-color: #38bdf8;
+}
+
+.piper-speed-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.piper-speed-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #38bdf8;
+  min-width: 38px;
+  text-align: center;
+}
+
+/* Hover-to-Seek Cue Overlay */
+.piper-hover-cue {
+  position: absolute;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.95);
+  color: #38bdf8;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 2147483647;
+  border: 1px solid #38bdf8;
+  animation: piperFadeIn 0.15s ease;
+}
+
+/* Active and Hovered Highlight Spans on Host Page */
+::highlight(piper-active-sentence) {
+  background-color: rgba(56, 189, 248, 0.28);
+  color: inherit;
+  border-radius: 4px;
+}
+
+::highlight(piper-hover-sentence) {
+  background-color: rgba(251, 146, 60, 0.22);
+  color: inherit;
+  outline: 1.5px dashed #fb923c;
+  border-radius: 4px;
+}
+
+@keyframes piperFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes piperSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
