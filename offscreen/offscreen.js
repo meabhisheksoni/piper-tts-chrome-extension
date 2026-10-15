@@ -86,30 +86,39 @@ async function getKokoroModel(onProgress) {
     const localModelUrl = chrome.runtime.getURL("lib/kokoro/model");
 
     try {
-      console.log("[Kokoro TTS] Loading bundled offline Kokoro-82M model from:", localModelUrl);
+      console.log("[Kokoro TTS] Loading bundled original FP32 Kokoro-82M model (310MB) from:", localModelUrl);
       kokoroModelInstance = await KokoroTTS.from_pretrained(localModelUrl, {
-        dtype: "q8",
+        dtype: "fp32",
         device
       });
-      console.log("[Kokoro TTS] Bundled offline Kokoro model loaded successfully!");
-    } catch (localErr) {
-      console.warn("[Kokoro TTS] Bundled local model notice, trying HuggingFace CDN fallback:", localErr);
-      kokoroModelInstance = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
-        dtype: "q8",
-        device,
-        progress_callback: (p) => {
-          if (p.status === "progress") {
-            const pct = Math.round(p.progress || 0);
-            broadcastEvent("KOKORO_STATUS", {
-              status: "downloading",
-              file: p.file,
-              progress: pct,
-              message: `Downloading Kokoro-82M Neural Engine (${pct}%)...`
-            });
-            if (onProgress) onProgress(pct);
+      console.log("[Kokoro TTS] Bundled original FP32 model loaded successfully!");
+    } catch (fp32Err) {
+      console.warn("[Kokoro TTS] FP32 load notice, attempting Q8 local model:", fp32Err);
+      try {
+        kokoroModelInstance = await KokoroTTS.from_pretrained(localModelUrl, {
+          dtype: "q8",
+          device
+        });
+        console.log("[Kokoro TTS] Bundled Q8 model loaded successfully!");
+      } catch (q8Err) {
+        console.warn("[Kokoro TTS] Local bundle fallback to HuggingFace CDN:", q8Err);
+        kokoroModelInstance = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
+          dtype: "q8",
+          device,
+          progress_callback: (p) => {
+            if (p.status === "progress") {
+              const pct = Math.round(p.progress || 0);
+              broadcastEvent("KOKORO_STATUS", {
+                status: "downloading",
+                file: p.file,
+                progress: pct,
+                message: `Downloading Kokoro-82M Neural Engine (${pct}%)...`
+              });
+              if (onProgress) onProgress(pct);
+            }
           }
-        }
-      });
+        });
+      }
     }
 
     console.log("[Kokoro TTS] Kokoro-82M neural synthesizer ready!");

@@ -274,9 +274,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       kokoroRow.innerHTML = `
         <div>
           <span class="model-name" style="color:#34d399; font-weight:600;">Kokoro-82M Studio Engine</span>
-          <span class="model-size">(~85 MB • 100% In-Browser)</span>
+          <span class="model-size">(Original 310 MB FP32 • 100% In-Browser)</span>
         </div>
-        <span class="badge" style="background:#065f46; color:#a7f3d0; font-size:10px;">Embedded ONNX</span>
+        <span class="badge" style="background:#065f46; color:#a7f3d0; font-size:10px;">Master FP32</span>
       `;
       modelsListContainer.appendChild(kokoroRow);
 
