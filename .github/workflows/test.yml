@@ -34,7 +34,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: 🚀 Run Automated Headless Extension Test Suite
-        run: npm test
+        run: xvfb-run --auto-servernum npm test
 
       - name: 📦 Package Release Zip (v1.2.3)
         if: success()

@@ -38,11 +38,32 @@ async function run() {
 
   console.log("1. Browser context booted. Waiting for background service worker...");
   let backgroundWorker = null;
-  const workers = context.serviceWorkers();
-  if (workers.length > 0) {
-    backgroundWorker = workers[0];
-  } else {
-    backgroundWorker = await context.waitForEvent("serviceworker", { timeout: 10000 });
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const workers = context.serviceWorkers();
+    if (workers.length > 0) {
+      backgroundWorker = workers[0];
+      break;
+    }
+    const bgPages = context.backgroundPages();
+    if (bgPages.length > 0) {
+      const extId = bgPages[0].url().split("/")[2];
+      backgroundWorker = { url: () => `chrome-extension://${extId}/` };
+      break;
+    }
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  if (!backgroundWorker) {
+    try {
+      backgroundWorker = await context.waitForEvent("serviceworker", { timeout: 10000 });
+    } catch (e) {
+      const workers = context.serviceWorkers();
+      if (workers.length > 0) {
+        backgroundWorker = workers[0];
+      } else {
+        throw new Error("Failed to detect extension service worker after 40 seconds. Workers count: " + workers.length);
+      }
+    }
   }
 
   const extensionId = backgroundWorker.url().split("/")[2];
