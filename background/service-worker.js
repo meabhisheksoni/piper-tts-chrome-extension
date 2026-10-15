@@ -71,9 +71,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   (async () => {
     try {
-      // Track the originating tab so events route reliably even if user switches tabs
+      // Track the originating tab so events route reliably even if user switches tabs or SW sleeps
       if (message.type === "SYNTHESIZE_AND_PLAY" && sender.tab && sender.tab.id) {
         activePlaybackTabId = sender.tab.id;
+        if (chrome.storage && chrome.storage.session) {
+          chrome.storage.session.set({ activePlaybackTabId: sender.tab.id }).catch(() => {});
+        }
       }
 
       // Messages destined for the offscreen audio player
@@ -109,11 +112,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       ];
 
       if (contentEventTypes.includes(message.type)) {
+        let targetTabId = activePlaybackTabId;
+        if (!targetTabId && chrome.storage && chrome.storage.session) {
+          try {
+            const sess = await chrome.storage.session.get("activePlaybackTabId");
+            targetTabId = sess?.activePlaybackTabId || null;
+          } catch {}
+        }
+
         // Unicast event directly to the tab where reading is taking place
-        if (activePlaybackTabId) {
-          chrome.tabs.sendMessage(activePlaybackTabId, message).catch(() => {
+        if (targetTabId) {
+          chrome.tabs.sendMessage(targetTabId, message).catch(() => {
             // Tab was closed or refreshed
             activePlaybackTabId = null;
+            if (chrome.storage && chrome.storage.session) {
+              chrome.storage.session.remove("activePlaybackTabId").catch(() => {});
+            }
           });
         } else {
           // Fallback to active tab if initiated from popup

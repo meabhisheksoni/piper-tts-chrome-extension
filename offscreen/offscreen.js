@@ -184,7 +184,13 @@ async function synthesizeKokoroChunk(text, voiceId) {
 
   const ctx = getAudioContext();
   const sampleRate = rawAudio.sampling_rate || 24000;
-  const float32Data = rawAudio.audio;
+  const float32Data = rawAudio.audio || new Float32Array(0);
+
+  // Guard against Web Audio API IndexSizeError when synthesis produces 0 frames
+  if (!float32Data || float32Data.length === 0) {
+    const silentFrames = Math.max(1, Math.floor(sampleRate * 0.05));
+    return ctx.createBuffer(1, silentFrames, sampleRate);
+  }
 
   const audioBuffer = ctx.createBuffer(1, float32Data.length, sampleRate);
   audioBuffer.copyToChannel(float32Data, 0);
@@ -381,6 +387,7 @@ function stopPlayback() {
   sessionEpoch++; // Invalidate any in-flight promises
   isPlaying = false;
   isPaused = false;
+  chunkAudioCache.clear();
 
   if (currentSourceNode) {
     try { currentSourceNode.stop(); } catch (e) {}

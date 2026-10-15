@@ -188,6 +188,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === "CHUNK_STARTED") {
       testVoiceBtn.innerHTML = `<span>🔊</span><span>Playing Kokoro Studio Audio...</span>`;
+    } else if (msg.type === "KOKORO_STATUS") {
+      if (msg.status === "loading" || msg.status === "downloading") {
+        testVoiceBtn.innerHTML = `<span>⚡</span><span>Loading Kokoro Model...</span>`;
+        testVoiceBtn.style.background = "#059669";
+      }
     } else if (msg.type === "PLAYBACK_FINISHED") {
       resetTestBtn();
     } else if (msg.type === "PLAYBACK_ERROR") {
@@ -206,7 +211,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       activeTestAudio = null;
     }
 
-    // A. Gemini Cloud Human Voice
+    // A. Gemini Cloud Human Voice (Supports Fluent Hindi & English)
     if (currentEngine === "gemini") {
       if (!cur.geminiApiKey) {
         testVoiceBtn.innerHTML = `<span>🔑</span><span>Paste API Key in Settings</span>`;
@@ -255,15 +260,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    // B. Kokoro-82M Local Studio Voice (100% Offline)
+    // B. Kokoro-82M Local Studio Voice (100% Offline English Studio Voice)
     const selectedKokoroVoice = kokoroVoiceSelect.value || "af_heart";
 
     testVoiceBtn.innerHTML = `<span>⚡</span><span>Synthesizing Studio Audio...</span>`;
     testVoiceBtn.style.background = "#10b981";
 
-    const sampleText = isHindi
-      ? "नमस्ते! यह कोकोरो न्यूरल वॉइस मॉडल है, जो बिना किसी सर्वर के आपके कंप्यूटर पर नेचुरल साउंड में बोलता है।"
-      : "Hello! This is Kokoro eighty-two M, running 100% locally in your browser with studio quality human voice.";
+    const sampleText = "Hello! This is Kokoro eighty-two M, running 100% locally in your browser with studio quality human voice.";
 
     chrome.runtime.sendMessage({
       type: "SYNTHESIZE_AND_PLAY",

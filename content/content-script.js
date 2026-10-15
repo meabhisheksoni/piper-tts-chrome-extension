@@ -254,6 +254,11 @@
 
           langBadge.textContent = activeLanguage.toUpperCase();
           langBadge.className = `piper-lang-badge ${activeLanguage === "hi" ? "hindi" : "english"}`;
+
+          const geminiTextSpan = geminiPillBtn.querySelector(".piper-pill-text");
+          if (geminiTextSpan) {
+            geminiTextSpan.textContent = activeLanguage === "hi" ? "Gemini AI (हिन्दी)" : "Gemini AI";
+          }
         });
 
         // Position Trigger Pill near selection safely within viewport
@@ -308,6 +313,31 @@
     lastActiveText = text;
     lastActiveRange = range;
     stopAllAudio();
+
+    // Check if selected text is Devanagari Hindi
+    const isHindiText = /[\u0900-\u097F]/.test(text);
+    if (isHindiText) {
+      if (userGeminiApiKey) {
+        playerHUD.style.display = "block";
+        hudTag.className = "piper-hud-tag gemini";
+        hudTag.textContent = "✨ Gemini AI";
+        voiceDisplay.textContent = `${userGeminiVoice} (Hindi)`;
+        readingText.innerHTML = `⚡ <i>Kokoro is an English studio model. Routing to Google Gemini AI for Hindi...</i>`;
+        setTimeout(() => {
+          startReadingWithGemini(text, range);
+        }, 1100);
+        return;
+      } else {
+        playerHUD.style.display = "block";
+        hudTag.className = "piper-hud-tag kokoro";
+        hudTag.textContent = "⚡ Kokoro";
+        voiceDisplay.textContent = "Hindi Text Detected";
+        readingText.innerHTML = `ℹ️ <b>Hindi Text:</b> Kokoro-82M is an offline English studio model. Please connect your free Google Gemini API key in extension settings for natural Hindi voice.`;
+        playPauseBtn.textContent = "▶";
+        isPlaying = false;
+        return;
+      }
+    }
 
     isGeminiAudioMode = false;
     isPlaying = true;
@@ -390,7 +420,10 @@
 
       try {
         const { audioBlobUrl, modelUsed } = await prefetchMap.get(idx);
-        if (activeSession !== geminiSessionToken || !isPlaying) return;
+        if (activeSession !== geminiSessionToken || !isPlaying) {
+          try { URL.revokeObjectURL(audioBlobUrl); } catch {}
+          return;
+        }
 
         voiceDisplay.textContent = `${userGeminiVoice} (${modelUsed || "AI Studio"})`;
 
