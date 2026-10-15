@@ -53,6 +53,8 @@ async function getKokoroModel(onProgress) {
     env.wasmPaths = wasmBase.endsWith("/") ? wasmBase : wasmBase + "/";
     env.allowLocalModels = true;
     env.allowRemoteModels = true;
+    env.useBrowserCache = false;
+    env.useCustomCache = false;
 
     // Respect Cross-Origin Isolation status
     if (typeof self !== "undefined" && !self.crossOriginIsolated) {

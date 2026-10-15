@@ -1,0 +1,27 @@
+{
+  "name": "piper-tts-extension",
+  "version": "1.2.3",
+  "description": "A privacy-first, dual-power Chrome extension giving you **two best-in-class AI speech engines** and smart summarization whenever you drag and select text on any webpage:",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "node tests/test-extension.mjs",
+    "build:zip": "mkdir -p dist && zip -r dist/piper-kokoro-tts-extension-v1.2.3.zip manifest.json README.md background content icons lib offscreen popup -x '*.DS_Store' '*/.*'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meabhisheksoni/piper-tts-chrome-extension.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/meabhisheksoni/piper-tts-chrome-extension/issues"
+  },
+  "homepage": "https://github.com/meabhisheksoni/piper-tts-chrome-extension#readme",
+  "devDependencies": {
+    "playwright-core": "^1.64.1"
+  }
+}

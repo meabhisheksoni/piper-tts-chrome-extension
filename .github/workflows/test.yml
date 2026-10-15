@@ -1,0 +1,60 @@
+name: Automated Extension CI & End-to-End Test Suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Headless Chromium Extension Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository with Git LFS
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: 🔧 Pull Git LFS models
+        run: git lfs pull
+
+      - name: 🟢 Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: 📦 Install npm dependencies
+        run: npm install
+
+      - name: 🌐 Install Playwright Chromium with system dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: 🚀 Run Automated Headless Extension Test Suite
+        run: npm test
+
+      - name: 📦 Package Release Zip (v1.2.3)
+        if: success()
+        run: |
+          mkdir -p dist
+          zip -r dist/piper-kokoro-tts-extension-v1.2.3.zip \
+            manifest.json \
+            README.md \
+            background \
+            content \
+            icons \
+            lib \
+            offscreen \
+            popup \
+            -x "*.DS_Store" "*/.*"
+
+      - name: 📤 Upload Extension Build Artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: piper-kokoro-tts-extension-v1.2.3
+          path: dist/piper-kokoro-tts-extension-v1.2.3.zip
+          retention-days: 14
